@@ -3,7 +3,28 @@ import { TAG_COLORS, PRIORITY_COLORS, TEAM } from "../lib/data.js";
 import { generateReply } from "../lib/claude.js";
 import { updateTicket, createTicket, rowToTicket } from "../lib/supabase.js";
 
-export default function Inbox({ tickets, setTickets, businessContext, onNavigate }) {
+async function gmailSend({ to, subject, body, threadId, messageId }) {
+  const res = await fetch("/api/gmail-send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ to, subject, body, threadId, messageId }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Gmail send failed");
+  return data;
+}
+
+async function gmailSync() {
+  const res = await fetch("/api/gmail-sync", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Sync failed");
+  return data;
+}
+
+export default function Inbox({ tickets, setTickets, businessContext, onNavigate, gmailStatus, onRefresh }) {
   const [tab, setTab] = useState("open");
   const [selected, setSelected] = useState(
     () => tickets.filter(t => t.type !== "ticket")[0] || null
@@ -12,6 +33,23 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
   const [aiLoading, setAiLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [replySent, setReplySent] = useState(false);
+
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
+
+  async function handleSync() {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const result = await gmailSync();
+      setSyncResult({ ok: true, count: result.imported });
+      if (result.imported > 0 && onRefresh) await onRefresh();
+    } catch(e) {
+      setSyncResult({ ok: false, error: e.message });
+    }
+    setSyncing(false);
+    setTimeout(() => setSyncResult(null), 4000);
+  }
 
   // Convert-to-ticket state
   const [converting, setConverting] = useState(false);
@@ -45,9 +83,23 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
   // ── Send reply (keep open) ────────────────────────
   async function handleSendReply() {
     if (!draft.trim() || saving) return;
+    setSaving(true);
+    // Send via Gmail if connected and this email came from Gmail
+    if (gmailStatus?.connected && selected.gmailThreadId) {
+      try {
+        await gmailSend({
+          to:        selected.customerEmail,
+          subject:   selected.subject,
+          body:      draft,
+          threadId:  selected.gmailThreadId,
+          messageId: selected.gmailMessageId,
+        });
+      } catch(e) {
+        console.warn("Gmail send failed, saving locally only:", e.message);
+      }
+    }
     const reply = { id: Date.now(), author: "You", body: draft, timestamp: Date.now() };
     const newReplies = [...(selected.replies || []), reply];
-    setSaving(true);
     await updateTicket(selected.id, { replies: newReplies });
     setSaving(false);
     const updated = { ...selected, replies: newReplies };
@@ -61,9 +113,22 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
   // ── Send reply + resolve ──────────────────────────
   async function handleSendAndResolve() {
     if (!draft.trim() || saving) return;
+    setSaving(true);
+    if (gmailStatus?.connected && selected.gmailThreadId) {
+      try {
+        await gmailSend({
+          to:        selected.customerEmail,
+          subject:   selected.subject,
+          body:      draft,
+          threadId:  selected.gmailThreadId,
+          messageId: selected.gmailMessageId,
+        });
+      } catch(e) {
+        console.warn("Gmail send failed, saving locally only:", e.message);
+      }
+    }
     const reply = { id: Date.now(), author: "You", body: draft, timestamp: Date.now() };
     const newReplies = [...(selected.replies || []), reply];
-    setSaving(true);
     await updateTicket(selected.id, { status: "resolved", replies: newReplies });
     setSaving(false);
     const updated = { ...selected, status: "resolved", replies: newReplies };
@@ -471,6 +536,10 @@ function Spinner({ color = "#6366F1" }) {
   return (
     <span style={{ width: 11, height: 11, border: `2px solid #E5E7EB`, borderTopColor: color, borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />
   );
+}
+
+function SmallSpinner() {
+  return <span style={{ width: 10, height: 10, border: "1.5px solid #DDD6FE", borderTopColor: "#6366F1", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />;
 }
 
 function TicketIcon() {

@@ -132,22 +132,24 @@ export async function saveSettings(ctx) {
 
 export function rowToTicket(row) {
   return {
-    id:            row.id,
-    customerId:    row.customer_id,
-    customerName:  row.customer_name,
-    customerEmail: row.customer_email,
-    subject:       row.subject,
-    body:          row.body,
-    status:        row.status,
-    priority:      row.priority,
-    tag:           row.tag,
-    assignedTo:    row.assigned_to,
-    notes:         row.notes   || "",
-    replies:       row.replies || [],
-    type:          row.type    || "email",
-    date:          new Date(row.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-    time:          new Date(row.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
-    timestamp:     new Date(row.created_at).getTime(),
+    id:              row.id,
+    customerId:      row.customer_id,
+    customerName:    row.customer_name,
+    customerEmail:   row.customer_email,
+    subject:         row.subject,
+    body:            row.body,
+    status:          row.status,
+    priority:        row.priority,
+    tag:             row.tag,
+    assignedTo:      row.assigned_to,
+    notes:           row.notes   || "",
+    replies:         row.replies || [],
+    type:            row.type    || "email",
+    gmailMessageId:  row.gmail_message_id  || null,
+    gmailThreadId:   row.gmail_thread_id   || null,
+    date:            new Date(row.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    time:            new Date(row.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+    timestamp:       new Date(row.created_at).getTime(),
   };
 }
 
@@ -161,4 +163,30 @@ export function rowToSettings(row) {
     tone:           row.tone            || "",
     extraInfo:      row.extra_info      || "",
   };
+}
+
+// GMAIL STATUS
+
+export async function fetchGmailStatus() {
+  var rows = await query("settings?id=eq.1&select=gmail_connected,gmail_email");
+  var row = rows && rows[0] ? rows[0] : {};
+  return {
+    connected: row.gmail_connected || false,
+    email:     row.gmail_email     || null,
+  };
+}
+
+export async function disconnectGmail() {
+  var res = await fetch(SUPABASE_URL + "/rest/v1/settings?id=eq.1", {
+    method: "PATCH",
+    headers: Object.assign({}, BASE_HEADERS, { "Prefer": "return=minimal" }),
+    body: JSON.stringify({
+      gmail_connected:     false,
+      gmail_access_token:  null,
+      gmail_refresh_token: null,
+      gmail_token_expiry:  null,
+      gmail_email:         null,
+    }),
+  });
+  if (!res.ok) throw new Error("Disconnect failed");
 }

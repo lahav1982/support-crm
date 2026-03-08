@@ -9,7 +9,7 @@ const FIELDS = [
   { key: "extraInfo",      label: "Anything Else",       icon: "📝", placeholder: "e.g. We don't offer phone support. Peak season is December.", hint: "Any other facts the AI should know." },
 ];
 
-export default function Settings({ context, onSave }) {
+export default function Settings({ context, onSave, gmailStatus, onDisconnectGmail }) {
   const [form, setForm] = useState(context);
   const [saved, setSaved] = useState(false);
 
@@ -37,6 +37,42 @@ export default function Settings({ context, onSave }) {
           <p style={{ margin: 0, fontSize: 15, color: "#6B7280", lineHeight: 1.65 }}>
             Tell the AI about your business. The more detail you add, the more accurate and on-brand every generated reply will be.
           </p>
+        </div>
+
+        {/* Gmail Connection */}
+        <div style={{ background: "#fff", border: "1px solid #EAECF0", borderRadius: 12, padding: "22px 24px", marginBottom: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+            <span style={{ fontSize: 20 }}>📧</span>
+            <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#0F1117" }}>Gmail Connection</h3>
+            {gmailStatus?.connected && (
+              <span style={{ marginLeft: "auto", background: "#F0FDF4", color: "#16A34A", fontSize: 12, fontWeight: 700, borderRadius: 20, padding: "3px 10px", border: "1px solid #BBF7D0", display: "flex", alignItems: "center", gap: 5 }}>
+                <span style={{ width: 6, height: 6, background: "#22C55E", borderRadius: "50%", display: "inline-block" }} />Connected
+              </span>
+            )}
+          </div>
+          {gmailStatus?.connected ? (
+            <div>
+              <p style={{ margin: "0 0 14px", fontSize: 15, color: "#6B7280" }}>
+                Connected as <strong style={{ color: "#0F1117" }}>{gmailStatus.email}</strong>. New emails sync to your Inbox automatically when you click Sync.
+              </p>
+              <button onClick={onDisconnectGmail} style={{ background: "#fff", border: "1.5px solid #FECACA", borderRadius: 9, padding: "9px 18px", fontSize: 14, fontWeight: 700, color: "#DC2626", cursor: "pointer" }}>
+                Disconnect Gmail
+              </button>
+            </div>
+          ) : (
+            <div>
+              <p style={{ margin: "0 0 16px", fontSize: 15, color: "#6B7280", lineHeight: 1.65 }}>
+                Connect your Google Workspace email to pull customer emails directly into your inbox and send replies from within the app.
+              </p>
+              <a href="/api/gmail-auth" style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "#fff", border: "1.5px solid #E5E7EB", borderRadius: 9, padding: "11px 20px", fontSize: 15, fontWeight: 700, color: "#0F1117", textDecoration: "none", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+                <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                Connect Google Workspace Gmail
+              </a>
+              <p style={{ margin: "12px 0 0", fontSize: 13, color: "#9CA3AF" }}>
+                You&apos;ll be redirected to Google to approve access. We only request read and send permissions.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Progress indicator */}

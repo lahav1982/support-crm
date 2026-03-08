@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchTickets, fetchSettings, saveSettings, rowToTicket, rowToSettings } from "./lib/supabase.js";
+import { fetchTickets, fetchSettings, saveSettings, rowToTicket, rowToSettings, fetchGmailStatus, disconnectGmail } from "./lib/supabase.js";
 import Inbox from "./pages/Inbox.jsx";
 import Tickets from "./pages/Tickets.jsx";
 import Customers from "./pages/Customers.jsx";
@@ -24,6 +24,7 @@ export default function App() {
   const [tickets, setTickets] = useState([]);
   const [contextForm, setContextForm] = useState(EMPTY_CONTEXT);
   const [savedContext, setSavedContext] = useState(EMPTY_CONTEXT);
+  const [gmailStatus, setGmailStatus] = useState({ connected: false, email: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -31,7 +32,8 @@ export default function App() {
     async function loadData() {
       setLoading(true); setError(null);
       try {
-        const [ticketRows, settingsRow] = await Promise.all([fetchTickets(), fetchSettings()]);
+        const [ticketRows, settingsRow, gmail] = await Promise.all([fetchTickets(), fetchSettings(), fetchGmailStatus()]);
+        setGmailStatus(gmail || { connected: false, email: null });
         setTickets((ticketRows || []).map(rowToTicket));
         const ctx = rowToSettings(settingsRow);
         setContextForm(ctx); setSavedContext(ctx);
@@ -47,6 +49,25 @@ export default function App() {
   const ticketCount = tickets.filter(t => t.type === "ticket" && (t.status === "open" || t.status === "in progress")).length;
   const hasContext  = Object.values(savedContext).some(v => v.trim());
   const businessContextPrompt = buildPrompt(savedContext);
+
+  async function handleRefreshTickets() {
+    try {
+      const rows = await fetchTickets();
+      setTickets((rows || []).map(rowToTicket));
+    } catch(e) { console.error("Refresh failed", e); }
+  }
+
+  async function handleDisconnectGmail() {
+    await disconnectGmail();
+    setGmailStatus({ connected: false, email: null });
+  }
+
+  // Detect OAuth redirect back from Google
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("gmail_connected") === "1") {
+    window.history.replaceState({}, "", "/");
+    fetchGmailStatus().then(g => setGmailStatus(g || { connected: false, email: null }));
+  }
 
   async function handleSaveContext(form) {
     await saveSettings(form);
@@ -145,11 +166,11 @@ export default function App() {
 
         {/* Page */}
         <div style={{ flex: 1, overflow: "hidden", animation: "fadeIn 0.2s ease" }}>
-          {page === "inbox"     && <Inbox     tickets={tickets} setTickets={setTickets} businessContext={businessContextPrompt} onNavigate={setPage} />}
+          {page === "inbox"     && <Inbox     tickets={tickets} setTickets={setTickets} businessContext={businessContextPrompt} onNavigate={setPage} gmailStatus={gmailStatus} onRefresh={handleRefreshTickets} />}
           {page === "tickets"   && <Tickets   tickets={tickets} setTickets={setTickets} />}
           {page === "customers" && <Customers tickets={tickets} />}
           {page === "analytics" && <Analytics tickets={tickets} />}
-          {page === "settings"  && <Settings  context={contextForm} onSave={handleSaveContext} />}
+          {page === "settings"  && <Settings  context={contextForm} onSave={handleSaveContext} gmailStatus={gmailStatus} onDisconnectGmail={handleDisconnectGmail} />}
         </div>
       </div>
     </div>

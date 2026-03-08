@@ -80,14 +80,13 @@ export default function Settings({ context, onSave, gmailStatus, onDisconnectGma
           <div style={{ background: "#fff", border: "1px solid #EAECF0", borderRadius: 12, padding: "22px 24px", marginBottom: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
               <span style={{ fontSize: 20 }}>🔍</span>
-              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#0F1117" }}>Gmail Sync Filters</h3>
+              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#0F1117" }}>Gmail Pre-Filters <span style={{ fontSize: 12, fontWeight: 500, color: "#9CA3AF" }}>(optional)</span></h3>
               {(form.gmailFilterKeywords || form.gmailFilterDomains) && (
                 <span style={{ marginLeft: "auto", background: "#F0FDF4", color: "#16A34A", fontSize: 12, fontWeight: 700, borderRadius: 20, padding: "3px 10px", border: "1px solid #BBF7D0" }}>Active</span>
               )}
             </div>
             <p style={{ margin: "0 0 18px", fontSize: 15, color: "#6B7280", lineHeight: 1.65 }}>
-              Only emails matching <strong>at least one</strong> of these filters will be pulled into your Inbox when you sync.
-              Leave both empty to block syncing entirely.
+              AI automatically decides which emails are customer support. These optional pre-filters <strong>narrow the pool</strong> of emails the AI looks at — useful if your inbox is very busy. Leave both empty to let AI triage everything.
             </p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>

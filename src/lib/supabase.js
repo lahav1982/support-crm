@@ -44,6 +44,7 @@ export async function createTicket(ticket) {
       assigned_to:    ticket.assignedTo || 1,
       notes:          ticket.notes || "",
       replies:        ticket.replies || [],
+      type:           ticket.type || "email",
     }),
   });
 }
@@ -145,6 +146,7 @@ export function rowToTicket(row) {
     assignedTo:    row.assigned_to,
     notes:         row.notes || "",
     replies:       row.replies || [],
+    type:          row.type || "email",
     date:          new Date(row.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
     time:          new Date(row.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
     timestamp:     new Date(row.created_at).getTime(),

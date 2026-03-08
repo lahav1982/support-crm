@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { TAG_COLORS, PRIORITY_COLORS, TEAM } from "../lib/data.js";
 import { generateReply } from "../lib/claude.js";
-import { updateTicket, createTicket, rowToTicket } from "../lib/supabase.js";
+import { updateTicket, createTicket, rowToTicket, deleteTickets } from "../lib/supabase.js";
 
 async function gmailSend({ to, subject, body, threadId, messageId }) {
   const res = await fetch("/api/gmail-send", {
@@ -34,8 +34,40 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
   const [saving, setSaving] = useState(false);
   const [replySent, setReplySent] = useState(false);
 
+  const [selected_ids, setSelectedIds] = useState(new Set());
+  const [deleting, setDeleting] = useState(false);
+
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
+
+  function toggleSelect(id, e) {
+    e.stopPropagation();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selected_ids.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map(e => e.id)));
+    }
+  }
+
+  async function handleDelete() {
+    if (selected_ids.size === 0) return;
+    setDeleting(true);
+    try {
+      await deleteTickets([...selected_ids]);
+      setTickets(prev => prev.filter(t => !selected_ids.has(t.id)));
+      if (selected && selected_ids.has(selected.id)) setSelected(null);
+      setSelectedIds(new Set());
+    } catch(e) { console.error("Delete failed", e); }
+    setDeleting(false);
+  }
 
   async function handleSync() {
     setSyncing(true);
@@ -311,6 +343,27 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
           {filtered.length} email{filtered.length !== 1 ? "s" : ""}
         </div>
 
+        {/* Selection action bar */}
+        {selected_ids.size > 0 && (
+          <div style={{ margin: "4px 8px", padding: "8px 12px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#DC2626", flex: 1 }}>{selected_ids.size} selected</span>
+            <button onClick={() => setSelectedIds(new Set())} style={{ background: "none", border: "none", fontSize: 12, color: "#6B7280", cursor: "pointer", fontWeight: 600, padding: "2px 6px" }}>Cancel</button>
+            <button onClick={handleDelete} disabled={deleting} style={{ background: "#DC2626", color: "#fff", border: "none", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: deleting ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 5, opacity: deleting ? 0.7 : 1 }}>
+              {deleting ? <><SmallSpinner color="#fff" />&nbsp;Deleting…</> : <>🗑 Delete {selected_ids.size}</>}
+            </button>
+          </div>
+        )}
+
+        {/* Select all row */}
+        {filtered.length > 0 && (
+          <div style={{ padding: "4px 12px 2px", display: "flex", alignItems: "center", gap: 8 }}>
+            <Checkbox checked={selected_ids.size === filtered.length && filtered.length > 0} onChange={toggleSelectAll} />
+            <span style={{ fontSize: 11, color: "#9CA3AF", cursor: "pointer" }} onClick={toggleSelectAll}>
+              {selected_ids.size === filtered.length && filtered.length > 0 ? "Deselect all" : "Select all"}
+            </span>
+          </div>
+        )}
+
         <div style={{ overflowY: "auto", flex: 1, padding: "0 8px 8px" }}>
           {filtered.length === 0 ? (
             <div style={{ textAlign: "center", padding: "40px 16px", color: "#9CA3AF", fontSize: 15 }}>
@@ -321,10 +374,14 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
             const isActive = selected?.id === email.id;
             const hasLinked = getLinkedTicketId(email) !== null;
             return (
-              <div key={email.id} onClick={() => selectEmail(email)} style={{
-                padding: "12px", borderRadius: 10, cursor: "pointer", marginBottom: 3, transition: "all 0.1s",
-                background: isActive ? "#F5F3FF" : "transparent",
-                border: isActive ? "1.5px solid #DDD6FE" : "1.5px solid transparent",
+              <div key={email.id} style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 3 }}>
+                <div style={{ paddingTop: 14, paddingLeft: 4, flexShrink: 0 }} onClick={e => toggleSelect(email.id, e)}>
+                  <Checkbox checked={selected_ids.has(email.id)} onChange={() => {}} />
+                </div>
+              <div onClick={() => selectEmail(email)} style={{
+                flex: 1, padding: "12px 12px 12px 6px", borderRadius: 10, cursor: "pointer", transition: "all 0.1s",
+                background: isActive ? "#F5F3FF" : selected_ids.has(email.id) ? "#FFF5F5" : "transparent",
+                border: isActive ? "1.5px solid #DDD6FE" : selected_ids.has(email.id) ? "1.5px solid #FECACA" : "1.5px solid transparent",
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
                   <span style={{ fontWeight: 700, fontSize: 14.5, color: "#0F1117" }}>{email.customerName}</span>
@@ -351,6 +408,7 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
                     </span>
                   )}
                 </div>
+              </div>
               </div>
             );
           })}
@@ -587,8 +645,17 @@ function Spinner({ color = "#6366F1" }) {
   );
 }
 
-function SmallSpinner() {
-  return <span style={{ width: 10, height: 10, border: "1.5px solid #DDD6FE", borderTopColor: "#6366F1", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />;
+function SmallSpinner({ color }) {
+  var top = color || "#6366F1";
+  return <span style={{ width: 10, height: 10, border: "1.5px solid #E5E7EB", borderTopColor: top, borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />;
+}
+
+function Checkbox({ checked, onChange }) {
+  return (
+    <div onClick={onChange} style={{ width: 16, height: 16, borderRadius: 4, border: checked ? "none" : "1.5px solid #D1D5DB", background: checked ? "#6366F1" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, transition: "all 0.1s" }}>
+      {checked && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+    </div>
+  );
 }
 
 function TicketIcon() {

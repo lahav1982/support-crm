@@ -196,3 +196,19 @@ export async function disconnectGmail() {
   });
   if (!res.ok) throw new Error("Disconnect failed");
 }
+
+// DELETE
+
+export async function deleteTickets(ids) {
+  if (!ids || ids.length === 0) return;
+  // Supabase REST supports IN filter: ?id=in.(1,2,3)
+  var idList = "(" + ids.join(",") + ")";
+  var res = await fetch(SUPABASE_URL + "/rest/v1/tickets?id=in." + idList, {
+    method: "DELETE",
+    headers: Object.assign({}, BASE_HEADERS, { "Prefer": "return=minimal" }),
+  });
+  if (!res.ok) {
+    var err = await res.text();
+    throw new Error("deleteTickets failed: " + err);
+  }
+}

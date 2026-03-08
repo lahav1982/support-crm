@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { TAG_COLORS, PRIORITY_COLORS, TEAM } from "../lib/data.js";
-import { updateTicket } from "../lib/supabase.js";
+import { updateTicket, deleteTickets } from "../lib/supabase.js";
 
 const STATUSES = ["open", "in progress", "resolved"];
 
@@ -9,6 +9,8 @@ export default function Tickets({ tickets, setTickets }) {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [selected, setSelected] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   // Only show tickets of type "ticket" (converted from chat)
   const ticketItems = tickets.filter(t => t.type === "ticket");
@@ -20,6 +22,35 @@ export default function Tickets({ tickets, setTickets }) {
   });
 
   const openCount = ticketItems.filter(t => t.status === "open" || t.status === "in progress").length;
+
+  function toggleSelect(id, e) {
+    e.stopPropagation();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map(t => t.id)));
+    }
+  }
+
+  async function handleDelete() {
+    if (selectedIds.size === 0) return;
+    setDeleting(true);
+    try {
+      await deleteTickets([...selectedIds]);
+      setTickets(prev => prev.filter(t => !selectedIds.has(t.id)));
+      if (selected && selectedIds.has(selected.id)) setSelected(null);
+      setSelectedIds(new Set());
+    } catch(e) { console.error("Delete failed", e); }
+    setDeleting(false);
+  }
 
   async function handleField(field, value) {
     if (!selected) return;
@@ -84,7 +115,25 @@ export default function Tickets({ tickets, setTickets }) {
         </div>
 
         {/* List */}
-        <div style={{ overflowY: "auto", flex: 1, padding: "8px" }}>
+        {/* Delete action bar */}
+        {selectedIds.size > 0 && (
+          <div style={{ margin: "4px 8px", padding: "8px 12px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#DC2626", flex: 1 }}>{selectedIds.size} selected</span>
+            <button onClick={() => setSelectedIds(new Set())} style={{ background: "none", border: "none", fontSize: 12, color: "#6B7280", cursor: "pointer", fontWeight: 600, padding: "2px 6px" }}>Cancel</button>
+            <button onClick={handleDelete} disabled={deleting} style={{ background: "#DC2626", color: "#fff", border: "none", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: deleting ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 5, opacity: deleting ? 0.7 : 1 }}>
+              {deleting ? "Deleting…" : "🗑 Delete " + selectedIds.size}
+            </button>
+          </div>
+        )}
+        {filtered.length > 0 && (
+          <div style={{ padding: "4px 12px 2px", display: "flex", alignItems: "center", gap: 8 }}>
+            <TkCheckbox checked={selectedIds.size === filtered.length && filtered.length > 0} onChange={toggleSelectAll} />
+            <span style={{ fontSize: 11, color: "#9CA3AF", cursor: "pointer" }} onClick={toggleSelectAll}>
+              {selectedIds.size === filtered.length && filtered.length > 0 ? "Deselect all" : "Select all"}
+            </span>
+          </div>
+        )}
+        <div style={{ overflowY: "auto", flex: 1, padding: "0 8px 8px" }}>
           {ticketItems.length === 0 ? (
             <div style={{ textAlign: "center", padding: "48px 20px", color: "#9CA3AF" }}>
               <div style={{ fontSize: 34, marginBottom: 10 }}>🎫</div>
@@ -100,8 +149,12 @@ export default function Tickets({ tickets, setTickets }) {
             const assignee = TEAM.find(m => m.id === ticket.assignedTo);
 
             return (
-              <div key={ticket.id} onClick={() => setSelected(ticket)}
-                style={{ padding: "12px", borderRadius: 10, cursor: "pointer", background: isActive ? "#F5F3FF" : "transparent", border: isActive ? "1.5px solid #DDD6FE" : "1.5px solid transparent", marginBottom: 4, transition: "all 0.1s" }}>
+              <div key={ticket.id} style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 4 }}>
+                <div style={{ paddingTop: 14, paddingLeft: 4, flexShrink: 0 }} onClick={e => toggleSelect(ticket.id, e)}>
+                  <TkCheckbox checked={selectedIds.has(ticket.id)} onChange={() => {}} />
+                </div>
+              <div onClick={() => setSelected(ticket)}
+                style={{ flex: 1, padding: "12px 12px 12px 6px", borderRadius: 10, cursor: "pointer", background: isActive ? "#F5F3FF" : selectedIds.has(ticket.id) ? "#FFF5F5" : "transparent", border: isActive ? "1.5px solid #DDD6FE" : selectedIds.has(ticket.id) ? "1.5px solid #FECACA" : "1.5px solid transparent", transition: "all 0.1s" }}>
 
                 {/* Top row */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
@@ -126,6 +179,7 @@ export default function Tickets({ tickets, setTickets }) {
                     <span style={{ marginLeft: "auto", width: 20, height: 20, borderRadius: "50%", background: assignee.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 800 }}>{assignee.avatar}</span>
                   )}
                 </div>
+              </div>
               </div>
             );
           })}
@@ -273,6 +327,14 @@ export default function Tickets({ tickets, setTickets }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function TkCheckbox({ checked, onChange }) {
+  return (
+    <div onClick={onChange} style={{ width: 16, height: 16, borderRadius: 4, border: checked ? "none" : "1.5px solid #D1D5DB", background: checked ? "#6366F1" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, transition: "all 0.1s" }}>
+      {checked && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
     </div>
   );
 }

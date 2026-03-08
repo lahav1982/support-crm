@@ -17,6 +17,7 @@ const NAV = [
 const EMPTY_CONTEXT = {
   companyName: "", products: "", refundPolicy: "",
   shippingPolicy: "", tone: "", extraInfo: "",
+  gmailFilterKeywords: "", gmailFilterDomains: "",
 };
 
 export default function App() {
@@ -27,27 +28,66 @@ export default function App() {
   const [gmailStatus, setGmailStatus] = useState({ connected: false, email: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [gmailToast, setGmailToast] = useState(null); // "connected" | "error" | null
 
   useEffect(() => {
     async function loadData() {
-      setLoading(true); setError(null);
+      setLoading(true);
+      setError(null);
+
+      // Check for OAuth redirect BEFORE rendering anything
+      const urlParams = new URLSearchParams(window.location.search);
+      const gmailConnected = urlParams.get("gmail_connected");
+      const gmailError     = urlParams.get("gmail_error");
+
+      if (gmailConnected === "1" || gmailError) {
+        // Clean URL immediately
+        window.history.replaceState({}, "", "/");
+        if (gmailError) {
+          setGmailToast({ type: "error", msg: decodeURIComponent(gmailError) });
+        }
+      }
+
       try {
-        const [ticketRows, settingsRow, gmail] = await Promise.all([fetchTickets(), fetchSettings(), fetchGmailStatus()]);
-        setGmailStatus(gmail || { connected: false, email: null });
+        const [ticketRows, settingsRow, gmail] = await Promise.all([
+          fetchTickets(),
+          fetchSettings(),
+          fetchGmailStatus(),
+        ]);
+
         setTickets((ticketRows || []).map(rowToTicket));
         const ctx = rowToSettings(settingsRow);
-        setContextForm(ctx); setSavedContext(ctx);
+        setContextForm(ctx);
+        setSavedContext(ctx);
+        setGmailStatus(gmail || { connected: false, email: null });
+
+        // Show success toast if we just came back from OAuth
+        if (gmailConnected === "1") {
+          if (gmail?.connected) {
+            setGmailToast({ type: "success", msg: "Gmail connected! Set your sync filters in Settings, then click Sync in the Inbox." });
+          } else {
+            setGmailToast({ type: "error", msg: "Gmail auth completed but connection not saved. Check your SUPABASE_SERVICE_KEY in Vercel." });
+          }
+        }
       } catch (e) {
         setError("Could not connect to database. Check your Supabase setup.");
       }
+
       setLoading(false);
     }
     loadData();
   }, []);
 
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (!gmailToast) return;
+    const t = setTimeout(() => setGmailToast(null), 8000);
+    return () => clearTimeout(t);
+  }, [gmailToast]);
+
   const emailCount  = tickets.filter(t => t.type !== "ticket" && t.status === "open").length;
   const ticketCount = tickets.filter(t => t.type === "ticket" && (t.status === "open" || t.status === "in progress")).length;
-  const hasContext  = Object.values(savedContext).some(v => v.trim());
+  const hasContext  = Object.values(savedContext).filter(v => typeof v === "string").some(v => v.trim());
   const businessContextPrompt = buildPrompt(savedContext);
 
   async function handleRefreshTickets() {
@@ -60,20 +100,13 @@ export default function App() {
   async function handleDisconnectGmail() {
     await disconnectGmail();
     setGmailStatus({ connected: false, email: null });
-  }
-
-  // Detect OAuth redirect back from Google
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get("gmail_connected") === "1") {
-    window.history.replaceState({}, "", "/");
-    fetchGmailStatus().then(g => {
-      setGmailStatus(g || { connected: false, email: null });
-    });
+    setGmailToast({ type: "info", msg: "Gmail disconnected." });
   }
 
   async function handleSaveContext(form) {
     await saveSettings(form);
-    setSavedContext({ ...form }); setContextForm({ ...form });
+    setSavedContext({ ...form });
+    setContextForm({ ...form });
   }
 
   if (loading) return <LoadingScreen />;
@@ -84,14 +117,32 @@ export default function App() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin    { to { transform: rotate(360deg); } }
+        @keyframes fadeIn  { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #E2E5ED; border-radius: 10px; }
-        select option { background: #fff; color: #0F1117; }
         input, textarea, select, button { font-family: 'Plus Jakarta Sans', sans-serif; }
       `}</style>
+
+      {/* Gmail toast notification */}
+      {gmailToast && (
+        <div style={{
+          position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)",
+          zIndex: 9999, animation: "slideDown 0.25s ease",
+          background: gmailToast.type === "success" ? "#F0FDF4" : gmailToast.type === "error" ? "#FEF2F2" : "#EFF6FF",
+          border: `1px solid ${gmailToast.type === "success" ? "#BBF7D0" : gmailToast.type === "error" ? "#FECACA" : "#BFDBFE"}`,
+          color: gmailToast.type === "success" ? "#15803D" : gmailToast.type === "error" ? "#DC2626" : "#1D4ED8",
+          borderRadius: 12, padding: "12px 20px", fontSize: 14, fontWeight: 600,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.12)", maxWidth: 480, textAlign: "center",
+          display: "flex", alignItems: "center", gap: 10,
+        }}>
+          <span>{gmailToast.type === "success" ? "✓" : gmailToast.type === "error" ? "⚠" : "ℹ"}</span>
+          <span>{gmailToast.msg}</span>
+          <button onClick={() => setGmailToast(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, opacity: 0.5, marginLeft: 4, padding: 0 }}>×</button>
+        </div>
+      )}
 
       {/* Sidebar */}
       <div style={{ width: 220, background: "#fff", borderRight: "1px solid #EAECF0", display: "flex", flexDirection: "column", padding: "20px 12px", gap: 2, flexShrink: 0 }}>
@@ -100,7 +151,7 @@ export default function App() {
           <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg,#6366F1,#8B5CF6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           </div>
-          <span style={{ fontSize: 17, fontWeight: 800, color: "#0F1117", letterSpacing: "-0.4px" }}>SupportAI</span>
+          <span style={{ fontSize: 15, fontWeight: 800, color: "#0F1117", letterSpacing: "-0.4px" }}>SupportAI</span>
         </div>
 
         {/* Nav */}
@@ -108,12 +159,11 @@ export default function App() {
           const isActive = page === n.id;
           const badge = n.id === "inbox" ? emailCount : n.id === "tickets" ? ticketCount : 0;
           return (
-            <button key={n.id} onClick={() => setPage(n.id)}
-              style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 9, border: "none", background: isActive ? "#F0EFFE" : "transparent", color: isActive ? "#6366F1" : "#6B7280", cursor: "pointer", fontSize: 15.5, fontWeight: isActive ? 700 : 500, transition: "all 0.12s", textAlign: "left" }}>
+            <button key={n.id} onClick={() => setPage(n.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 9, border: "none", background: isActive ? "#F0EFFE" : "transparent", color: isActive ? "#6366F1" : "#6B7280", cursor: "pointer", fontSize: 13.5, fontWeight: isActive ? 700 : 500, transition: "all 0.12s", textAlign: "left" }}>
               <span style={{ color: isActive ? "#6366F1" : "#9CA3AF", display: "flex" }}>{n.icon}</span>
               {n.label}
               {badge > 0 && (
-                <span style={{ marginLeft: "auto", background: n.id === "tickets" ? "#EFF6FF" : "#FEF2F2", color: n.id === "tickets" ? "#3B82F6" : "#EF4444", fontSize: 12, fontWeight: 700, borderRadius: 20, padding: "1px 7px" }}>{badge}</span>
+                <span style={{ marginLeft: "auto", background: n.id === "tickets" ? "#EFF6FF" : "#FEF2F2", color: n.id === "tickets" ? "#3B82F6" : "#EF4444", fontSize: 10, fontWeight: 700, borderRadius: 20, padding: "1px 7px" }}>{badge}</span>
               )}
               {n.id === "settings" && !hasContext && (
                 <span style={{ marginLeft: "auto", width: 7, height: 7, background: "#F59E0B", borderRadius: "50%", display: "inline-block" }} />
@@ -124,18 +174,26 @@ export default function App() {
 
         <div style={{ flex: 1 }} />
 
-        {/* DB status */}
-        <div style={{ padding: "8px 12px", display: "flex", alignItems: "center", gap: 7 }}>
-          <span style={{ width: 7, height: 7, background: "#22C55E", borderRadius: "50%", display: "inline-block" }} />
-          <span style={{ fontSize: 13, color: "#9CA3AF" }}>Connected</span>
+        {/* Status dots */}
+        <div style={{ padding: "8px 12px", display: "flex", flexDirection: "column", gap: 5 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <span style={{ width: 7, height: 7, background: "#22C55E", borderRadius: "50%", display: "inline-block" }} />
+            <span style={{ fontSize: 11, color: "#9CA3AF" }}>DB Connected</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <span style={{ width: 7, height: 7, background: gmailStatus.connected ? "#3B82F6" : "#D1D5DB", borderRadius: "50%", display: "inline-block" }} />
+            <span style={{ fontSize: 11, color: gmailStatus.connected ? "#3B82F6" : "#9CA3AF" }}>
+              {gmailStatus.connected ? "Gmail Connected" : "Gmail Not Connected"}
+            </span>
+          </div>
         </div>
 
         {/* User */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderTop: "1px solid #EAECF0" }}>
-          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg,#6366F1,#8B5CF6)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>Y</div>
+          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg,#6366F1,#8B5CF6)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>Y</div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#0F1117" }}>You</div>
-            <div style={{ fontSize: 12, color: "#9CA3AF" }}>Admin</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#0F1117" }}>You</div>
+            <div style={{ fontSize: 10, color: "#9CA3AF" }}>Admin</div>
           </div>
         </div>
       </div>
@@ -145,34 +203,30 @@ export default function App() {
         {/* Topbar */}
         <div style={{ height: 56, background: "#fff", borderBottom: "1px solid #EAECF0", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 28px", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 18, fontWeight: 800, color: "#0F1117", letterSpacing: "-0.4px" }}>{NAV.find(n => n.id === page)?.label}</span>
-            {page === "inbox" && emailCount > 0 && (
-              <span style={{ background: "#FEF2F2", color: "#EF4444", fontSize: 13, fontWeight: 700, borderRadius: 20, padding: "2px 10px" }}>{emailCount} open</span>
-            )}
-            {page === "tickets" && ticketCount > 0 && (
-              <span style={{ background: "#EFF6FF", color: "#3B82F6", fontSize: 13, fontWeight: 700, borderRadius: 20, padding: "2px 10px" }}>{ticketCount} active</span>
-            )}
+            <span style={{ fontSize: 16, fontWeight: 800, color: "#0F1117", letterSpacing: "-0.4px" }}>{NAV.find(n => n.id === page)?.label}</span>
+            {page === "inbox"   && emailCount  > 0 && <span style={{ background: "#FEF2F2", color: "#EF4444", fontSize: 11, fontWeight: 700, borderRadius: 20, padding: "2px 10px" }}>{emailCount} open</span>}
+            {page === "tickets" && ticketCount > 0 && <span style={{ background: "#EFF6FF", color: "#3B82F6", fontSize: 11, fontWeight: 700, borderRadius: 20, padding: "2px 10px" }}>{ticketCount} active</span>}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {page === "inbox" && (
               hasContext
-                ? <span style={{ background: "#F0FDF4", color: "#16A34A", fontSize: 13, fontWeight: 600, borderRadius: 20, padding: "4px 12px", border: "1px solid #BBF7D0", display: "flex", alignItems: "center", gap: 5 }}>
+                ? <span style={{ background: "#F0FDF4", color: "#16A34A", fontSize: 11, fontWeight: 600, borderRadius: 20, padding: "4px 12px", border: "1px solid #BBF7D0", display: "flex", alignItems: "center", gap: 5 }}>
                     <span style={{ width: 6, height: 6, background: "#22C55E", borderRadius: "50%", display: "inline-block" }} />AI context active
                   </span>
-                : <button onClick={() => setPage("settings")} style={{ background: "#FFFBEB", color: "#D97706", fontSize: 13, fontWeight: 600, borderRadius: 20, padding: "4px 12px", border: "1px solid #FDE68A", cursor: "pointer" }}>
+                : <button onClick={() => setPage("settings")} style={{ background: "#FFFBEB", color: "#D97706", fontSize: 11, fontWeight: 600, borderRadius: 20, padding: "4px 12px", border: "1px solid #FDE68A", cursor: "pointer" }}>
                     ⚠ Set up AI context
                   </button>
             )}
           </div>
         </div>
 
-        {/* Page */}
+        {/* Page content */}
         <div style={{ flex: 1, overflow: "hidden", animation: "fadeIn 0.2s ease" }}>
           {page === "inbox"     && <Inbox     tickets={tickets} setTickets={setTickets} businessContext={businessContextPrompt} onNavigate={setPage} gmailStatus={gmailStatus} onRefresh={handleRefreshTickets} />}
           {page === "tickets"   && <Tickets   tickets={tickets} setTickets={setTickets} />}
           {page === "customers" && <Customers tickets={tickets} />}
           {page === "analytics" && <Analytics tickets={tickets} />}
-          {page === "settings"  && <Settings  context={contextForm} onSave={handleSaveContext} gmailStatus={{ ...gmailStatus, filterKeywords: contextForm.gmailFilterKeywords, filterDomains: contextForm.gmailFilterDomains }} onDisconnectGmail={handleDisconnectGmail} />}
+          {page === "settings"  && <Settings  context={contextForm} onSave={handleSaveContext} gmailStatus={gmailStatus} onDisconnectGmail={handleDisconnectGmail} />}
         </div>
       </div>
     </div>
@@ -187,8 +241,8 @@ function LoadingScreen() {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
       </div>
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 17, fontWeight: 700, color: "#0F1117", marginBottom: 4 }}>Loading SupportAI</div>
-        <div style={{ fontSize: 14, color: "#9CA3AF" }}>Connecting to database…</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#0F1117", marginBottom: 4 }}>Loading SupportAI</div>
+        <div style={{ fontSize: 12, color: "#9CA3AF" }}>Connecting to database…</div>
       </div>
       <div style={{ width: 32, height: 32, border: "3px solid #E5E7EB", borderTopColor: "#6366F1", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
     </div>
@@ -199,10 +253,10 @@ function ErrorScreen({ message }) {
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#F5F6FA", fontFamily: "'Plus Jakarta Sans', sans-serif", gap: 12 }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700&display=swap');`}</style>
-      <div style={{ fontSize: 34 }}>⚠️</div>
-      <div style={{ fontSize: 17, fontWeight: 700, color: "#0F1117" }}>Database connection failed</div>
-      <div style={{ fontSize: 14, color: "#6B7280", maxWidth: 340, textAlign: "center" }}>{message}</div>
-      <button onClick={() => window.location.reload()} style={{ background: "#6366F1", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 15, fontWeight: 700, cursor: "pointer", marginTop: 8 }}>Try again</button>
+      <div style={{ fontSize: 32 }}>⚠️</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: "#0F1117" }}>Database connection failed</div>
+      <div style={{ fontSize: 12, color: "#6B7280", maxWidth: 340, textAlign: "center" }}>{message}</div>
+      <button onClick={() => window.location.reload()} style={{ background: "#6366F1", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", marginTop: 8 }}>Try again</button>
     </div>
   );
 }

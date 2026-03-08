@@ -26,6 +26,7 @@ export default function App() {
   const [contextForm, setContextForm] = useState(EMPTY_CONTEXT);
   const [savedContext, setSavedContext] = useState(EMPTY_CONTEXT);
   const [gmailStatus, setGmailStatus] = useState({ connected: false, email: null });
+  const [authed, setAuthed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [gmailToast, setGmailToast] = useState(null); // "connected" | "error" | null
@@ -34,6 +35,13 @@ export default function App() {
     async function loadData() {
       setLoading(true);
       setError(null);
+
+      // Check auth first
+      try {
+        const authRes = await fetch("/api/auth-check");
+        if (!authRes.ok) { setLoading(false); return; } // not authed — show login
+        setAuthed(true);
+      } catch(e) { setLoading(false); return; }
 
       // Check for OAuth redirect BEFORE rendering anything
       const urlParams = new URLSearchParams(window.location.search);
@@ -110,6 +118,7 @@ export default function App() {
   }
 
   if (loading) return <LoadingScreen />;
+  if (!authed) return <LoginScreen onLogin={() => { setAuthed(true); window.location.reload(); }} />;
   if (error)   return <ErrorScreen message={error} />;
 
   return (
@@ -191,10 +200,15 @@ export default function App() {
         {/* User */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderTop: "1px solid #EAECF0" }}>
           <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg,#6366F1,#8B5CF6)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>Y</div>
-          <div>
+          <div style={{ flex: 1 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#0F1117" }}>You</div>
             <div style={{ fontSize: 10, color: "#9CA3AF" }}>Admin</div>
           </div>
+          <button onClick={async () => { await fetch("/api/logout", { method: "POST" }); window.location.reload(); }}
+            title="Log out"
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#9CA3AF", padding: 4, display: "flex", alignItems: "center", borderRadius: 6, flexShrink: 0 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
         </div>
       </div>
 
@@ -266,3 +280,90 @@ function TicketIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" f
 function UsersIcon()  { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>; }
 function ChartIcon()  { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>; }
 function GearIcon()   { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>; }
+
+function LoginScreen({ onLogin }) {
+  const [password, setPassword]   = useState("");
+  const [error, setError]         = useState("");
+  const [loading, setLoading]     = useState(false);
+  const [showPass, setShowPass]   = useState(false);
+
+  async function handleSubmit(e) {
+    e?.preventDefault();
+    if (!password.trim()) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res  = await fetch("/api/login", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ password }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        onLogin();
+      } else {
+        setError(data.error || "Incorrect password");
+        setLoading(false);
+      }
+    } catch(e) {
+      setError("Could not connect. Check your internet connection.");
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #F5F6FA 0%, #EEF0F8 100%)", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap'); * { box-sizing: border-box; } @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }`}</style>
+      <div style={{ background: "#fff", borderRadius: 20, padding: "44px 40px", width: 380, boxShadow: "0 8px 48px rgba(99,102,241,0.12)", animation: "fadeUp 0.35s ease" }}>
+        {/* Logo */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 32 }}>
+          <div style={{ width: 52, height: 52, borderRadius: 15, background: "linear-gradient(135deg,#6366F1,#8B5CF6)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14, boxShadow: "0 4px 16px rgba(99,102,241,0.35)" }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F1117", margin: "0 0 4px", letterSpacing: "-0.5px" }}>SupportAI</h1>
+          <p style={{ fontSize: 13, color: "#9CA3AF", margin: 0 }}>Sign in to your support dashboard</p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit}>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 6 }}>Password</label>
+          <div style={{ position: "relative", marginBottom: 8 }}>
+            <input
+              autoFocus
+              type={showPass ? "text" : "password"}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleSubmit()}
+              placeholder="Enter your password"
+              style={{ width: "100%", padding: "12px 42px 12px 14px", fontSize: 15, border: error ? "1.5px solid #FCA5A5" : "1.5px solid #E5E7EB", borderRadius: 10, outline: "none", fontFamily: "inherit", color: "#0F1117", background: "#FAFAFA", transition: "border 0.15s" }}
+              onFocus={e => { if (!error) e.target.style.borderColor = "#6366F1"; }}
+              onBlur={e  => { if (!error) e.target.style.borderColor = "#E5E7EB"; }}
+            />
+            <button type="button" onClick={() => setShowPass(v => !v)} tabIndex={-1}
+              style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#9CA3AF", padding: 0, display: "flex" }}>
+              {showPass
+                ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              }
+            </button>
+          </div>
+
+          {error && (
+            <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "#DC2626", fontWeight: 600, marginBottom: 12 }}>
+              {error}
+            </div>
+          )}
+
+          <button type="submit" disabled={loading || !password.trim()}
+            style={{ width: "100%", background: loading || !password.trim() ? "#E5E7EB" : "linear-gradient(135deg,#6366F1,#8B5CF6)", color: loading || !password.trim() ? "#9CA3AF" : "#fff", border: "none", borderRadius: 10, padding: "13px", fontSize: 15, fontWeight: 700, cursor: loading || !password.trim() ? "not-allowed" : "pointer", transition: "all 0.15s", letterSpacing: "-0.2px", marginTop: error ? 0 : 4 }}>
+            {loading ? "Signing in…" : "Sign in →"}
+          </button>
+        </form>
+
+        <p style={{ textAlign: "center", fontSize: 12, color: "#D1D5DB", marginTop: 24, marginBottom: 0 }}>
+          🔒 Protected with end-to-end security
+        </p>
+      </div>
+    </div>
+  );
+}

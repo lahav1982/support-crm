@@ -81,7 +81,7 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
       if (!res.ok) {
         setSyncResult({ ok: false, error: result.error || "Sync failed" });
       } else {
-        setSyncResult({ ok: true, count: result.imported, rejected: result.rejected || 0, skipped: result.skipped || 0 });
+        setSyncResult({ ok: true, count: result.imported, threadReplies: result.threadReplies || 0, rejected: result.rejected || 0, skipped: result.skipped || 0 });
         if (result.imported > 0 && onRefresh) await onRefresh();
       }
     } catch(e) {
@@ -320,14 +320,18 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
           <div style={{ margin: "5px 8px 0", padding: "8px 10px", borderRadius: 7, fontSize: 12, background: syncResult.ok ? "#F0FDF4" : "#FEF2F2", border: "1px solid " + (syncResult.ok ? "#BBF7D0" : "#FECACA") }}>
             {syncResult.ok ? (
               <div>
-                <div style={{ fontWeight: 700, color: "#16A34A", marginBottom: syncResult.rejected > 0 ? 4 : 0 }}>
-                  {syncResult.count > 0 ? "✓ " + syncResult.count + " support email" + (syncResult.count > 1 ? "s" : "") + " imported" : "✓ No new support emails found"}
+                <div style={{ fontWeight: 700, color: "#16A34A", marginBottom: 3 }}>
+                  {(syncResult.count > 0 || syncResult.threadReplies > 0)
+                    ? "✓ " + [
+                        syncResult.count > 0 && syncResult.count + " new email" + (syncResult.count > 1 ? "s" : ""),
+                        syncResult.threadReplies > 0 && syncResult.threadReplies + " conversation repl" + (syncResult.threadReplies > 1 ? "ies" : "y"),
+                      ].filter(Boolean).join(" · ")
+                    : "✓ Inbox up to date"}
                 </div>
                 {(syncResult.rejected > 0 || syncResult.skipped > 0) && (
-                  <div style={{ color: "#6B7280", fontSize: 11 }}>
-                    {syncResult.rejected > 0 && <span>🤖 AI filtered out {syncResult.rejected} non-support email{syncResult.rejected > 1 ? "s" : ""}</span>}
-                    {syncResult.rejected > 0 && syncResult.skipped > 0 && <span style={{ margin: "0 4px" }}>·</span>}
-                    {syncResult.skipped > 0 && <span>{syncResult.skipped} already imported</span>}
+                  <div style={{ color: "#6B7280", fontSize: 11, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {syncResult.rejected > 0 && <span>🤖 {syncResult.rejected} filtered by AI</span>}
+                    {syncResult.skipped  > 0 && <span>· {syncResult.skipped} already synced</span>}
                   </div>
                 )}
               </div>

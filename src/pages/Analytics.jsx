@@ -21,22 +21,38 @@ const RESPONSE_DATA = [
 ];
 
 const TAG_DATA = [
-  { name: "Shipping", value: 28, color: "#3b9fd6" },
-  { name: "Refund", value: 22, color: "#e05555" },
-  { name: "Account", value: 18, color: "#a855f7" },
-  { name: "Sales", value: 16, color: "#4caf7d" },
-  { name: "Exchange", value: 10, color: "#f59e2b" },
-  { name: "Technical", value: 6, color: "#3b82f6" },
+  { name: "Shipping", value: 28, color: "#6366F1" },
+  { name: "Refund", value: 22, color: "#EF4444" },
+  { name: "Account", value: 18, color: "#8B5CF6" },
+  { name: "Sales", value: 16, color: "#10B981" },
+  { name: "Exchange", value: 10, color: "#F59E0B" },
+  { name: "Technical", value: 6, color: "#3B82F6" },
 ];
 
-const tooltipStyle = { background: "#0d1117", border: "1px solid #1e2433", borderRadius: 8, color: "#e2e8f0", fontSize: 12 };
+const TEAM_DATA = [
+  { name: "You",   resolved: 12, open: 3, color: "#6366F1", max: 15 },
+  { name: "Maria", resolved: 9,  open: 2, color: "#F59E0B", max: 15 },
+  { name: "James", resolved: 11, open: 1, color: "#10B981", max: 15 },
+];
 
-function StatCard({ label, value, sub, color = "#6c63ff" }) {
+const tooltipStyle = { background: "#fff", border: "1px solid #EAECF0", borderRadius: 8, color: "#0F1117", fontSize: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" };
+
+function StatCard({ label, value, sub, color, bg }) {
   return (
-    <div style={{ background: "#0d1117", border: "1px solid #1e2433", borderRadius: 12, padding: "20px 24px", flex: 1 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: "#4a5568", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>{label}</div>
-      <div style={{ fontSize: 32, fontWeight: 700, color, marginBottom: 4 }}>{value}</div>
-      <div style={{ fontSize: 12, color: "#4a5568" }}>{sub}</div>
+    <div style={{ background: "#fff", border: "1px solid #EAECF0", borderRadius: 14, padding: "20px 22px", flex: 1, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>{label}</div>
+      <div style={{ fontSize: 30, fontWeight: 800, color: color, letterSpacing: "-0.8px", marginBottom: 4 }}>{value}</div>
+      <div style={{ fontSize: 11, color: "#9CA3AF" }}>{sub}</div>
+    </div>
+  );
+}
+
+function ChartCard({ title, sub, children }) {
+  return (
+    <div style={{ background: "#fff", border: "1px solid #EAECF0", borderRadius: 14, padding: 22, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: "#0F1117", marginBottom: 2 }}>{title}</div>
+      <div style={{ fontSize: 11, color: "#9CA3AF", marginBottom: 18 }}>{sub}</div>
+      {children}
     </div>
   );
 }
@@ -47,108 +63,99 @@ export default function Analytics({ tickets }) {
   const resolutionRate = Math.round((resolved / tickets.length) * 100);
 
   return (
-    <div style={{ overflowY: "auto", height: "100%", padding: 28, background: "#0a0e17", fontFamily: "inherit" }}>
-      <div style={{ marginBottom: 24 }}>
-        <h2 style={{ margin: "0 0 4px", fontSize: 18, fontWeight: 700, color: "#e2e8f0" }}>Analytics</h2>
-        <p style={{ margin: 0, fontSize: 13, color: "#4a5568" }}>Last 7 days performance overview</p>
+    <div style={{ overflowY: "auto", height: "100%", padding: 28, background: "#F5F6FA", fontFamily: "inherit" }}>
+      <div style={{ marginBottom: 22 }}>
+        <h2 style={{ margin: "0 0 3px", fontSize: 16, fontWeight: 800, color: "#0F1117", letterSpacing: "-0.4px" }}>Analytics Overview</h2>
+        <p style={{ margin: 0, fontSize: 12, color: "#9CA3AF" }}>Last 7 days · Updates in real time</p>
       </div>
 
-      {/* Stats row */}
-      <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
-        <StatCard label="Total Tickets" value={tickets.length} sub="All time" color="#6c63ff" />
-        <StatCard label="Open" value={open} sub="Need attention" color="#e05555" />
-        <StatCard label="Resolved" value={resolved} sub="This week" color="#4caf7d" />
-        <StatCard label="Resolution Rate" value={`${resolutionRate}%`} sub="↑ 4% vs last week" color="#48c6ef" />
-        <StatCard label="Avg Response" value="2.1h" sub="↓ 0.3h vs last week" color="#f59e2b" />
+      {/* Stats */}
+      <div style={{ display: "flex", gap: 14, marginBottom: 18 }}>
+        <StatCard label="Total Tickets" value={tickets.length} sub="All time" color="#6366F1" />
+        <StatCard label="Open" value={open} sub="Need attention" color="#EF4444" />
+        <StatCard label="Resolved" value={resolved} sub="This week" color="#16A34A" />
+        <StatCard label="Resolution Rate" value={`${resolutionRate}%`} sub="↑ 4% vs last week" color="#6366F1" />
+        <StatCard label="Avg Response" value="2.1h" sub="↓ 18min vs last week" color="#F59E0B" />
       </div>
 
-      {/* Charts row 1 */}
-      <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
-        {/* Volume */}
-        <div style={{ flex: 2, background: "#0d1117", border: "1px solid #1e2433", borderRadius: 12, padding: 20 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0", marginBottom: 4 }}>Ticket Volume</div>
-          <div style={{ fontSize: 11, color: "#4a5568", marginBottom: 16 }}>New vs resolved per day</div>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={VOLUME_DATA} barGap={4}>
-              <XAxis dataKey="day" tick={{ fill: "#4a5568", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "#4a5568", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "#ffffff08" }} />
-              <Bar dataKey="open" name="Opened" fill="#e05555" radius={[4,4,0,0]} />
-              <Bar dataKey="resolved" name="Resolved" fill="#4caf7d" radius={[4,4,0,0]} />
-            </BarChart>
-          </ResponsiveContainer>
-          <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
-            <span style={{ fontSize: 10, color: "#e05555" }}>■ Opened</span>
-            <span style={{ fontSize: 10, color: "#4caf7d" }}>■ Resolved</span>
-          </div>
-        </div>
-
-        {/* Response time */}
-        <div style={{ flex: 1, background: "#0d1117", border: "1px solid #1e2433", borderRadius: 12, padding: 20 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0", marginBottom: 4 }}>Avg Response Time</div>
-          <div style={{ fontSize: 11, color: "#4a5568", marginBottom: 16 }}>Hours per day</div>
-          <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={RESPONSE_DATA}>
-              <XAxis dataKey="day" tick={{ fill: "#4a5568", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "#4a5568", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Line type="monotone" dataKey="hours" name="Hours" stroke="#48c6ef" strokeWidth={2} dot={{ fill: "#48c6ef", r: 3 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Charts row 2 */}
-      <div style={{ display: "flex", gap: 16 }}>
-        {/* By category */}
-        <div style={{ flex: 1, background: "#0d1117", border: "1px solid #1e2433", borderRadius: 12, padding: 20 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0", marginBottom: 4 }}>Tickets by Category</div>
-          <div style={{ fontSize: 11, color: "#4a5568", marginBottom: 16 }}>Distribution by tag</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-            <ResponsiveContainer width={140} height={140}>
-              <PieChart>
-                <Pie data={TAG_DATA} cx="50%" cy="50%" innerRadius={40} outerRadius={65} dataKey="value" strokeWidth={0}>
-                  {TAG_DATA.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                </Pie>
-                <Tooltip contentStyle={tooltipStyle} />
-              </PieChart>
+      {/* Row 1 */}
+      <div style={{ display: "flex", gap: 14, marginBottom: 14 }}>
+        <div style={{ flex: 2 }}>
+          <ChartCard title="Ticket Volume" sub="Opened vs resolved per day">
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={VOLUME_DATA} barGap={3}>
+                <XAxis dataKey="day" tick={{ fill: "#9CA3AF", fontSize: 11, fontFamily: "Plus Jakarta Sans" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "#9CA3AF", fontSize: 11, fontFamily: "Plus Jakarta Sans" }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "#F5F3FF" }} />
+                <Bar dataKey="open" name="Opened" fill="#EF4444" radius={[5,5,0,0]} />
+                <Bar dataKey="resolved" name="Resolved" fill="#10B981" radius={[5,5,0,0]} />
+              </BarChart>
             </ResponsiveContainer>
-            <div style={{ flex: 1 }}>
-              {TAG_DATA.map(t => (
-                <div key={t.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: t.color, display: "inline-block" }} />
-                    <span style={{ fontSize: 12, color: "#94a3b8" }}>{t.name}</span>
-                  </div>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0" }}>{t.value}%</span>
-                </div>
-              ))}
+            <div style={{ display: "flex", gap: 16, marginTop: 10 }}>
+              <span style={{ fontSize: 11, color: "#EF4444", fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, background: "#EF4444", borderRadius: 2, display: "inline-block" }} />Opened</span>
+              <span style={{ fontSize: 11, color: "#10B981", fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, background: "#10B981", borderRadius: 2, display: "inline-block" }} />Resolved</span>
             </div>
-          </div>
+          </ChartCard>
+        </div>
+        <div style={{ flex: 1 }}>
+          <ChartCard title="Avg Response Time" sub="Hours to first reply">
+            <ResponsiveContainer width="100%" height={180}>
+              <LineChart data={RESPONSE_DATA}>
+                <XAxis dataKey="day" tick={{ fill: "#9CA3AF", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "#9CA3AF", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Line type="monotone" dataKey="hours" name="Hours" stroke="#6366F1" strokeWidth={2.5} dot={{ fill: "#6366F1", r: 3, strokeWidth: 0 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </div>
+      </div>
+
+      {/* Row 2 */}
+      <div style={{ display: "flex", gap: 14 }}>
+        <div style={{ flex: 1 }}>
+          <ChartCard title="Tickets by Category" sub="Distribution across tags">
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <ResponsiveContainer width={130} height={130}>
+                <PieChart>
+                  <Pie data={TAG_DATA} cx="50%" cy="50%" innerRadius={38} outerRadius={60} dataKey="value" strokeWidth={0}>
+                    {TAG_DATA.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                  </Pie>
+                  <Tooltip contentStyle={tooltipStyle} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ flex: 1 }}>
+                {TAG_DATA.map(t => (
+                  <div key={t.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 2, background: t.color, display: "inline-block" }} />
+                      <span style={{ fontSize: 12, color: "#374151" }}>{t.name}</span>
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#0F1117" }}>{t.value}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </ChartCard>
         </div>
 
-        {/* Team performance */}
-        <div style={{ flex: 1, background: "#0d1117", border: "1px solid #1e2433", borderRadius: 12, padding: 20 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0", marginBottom: 4 }}>Team Performance</div>
-          <div style={{ fontSize: 11, color: "#4a5568", marginBottom: 16 }}>Tickets resolved this week</div>
-          {[
-            { name: "You", resolved: 12, open: 3, color: "#6c63ff" },
-            { name: "Maria", resolved: 9, open: 2, color: "#f59e2b" },
-            { name: "James", resolved: 11, open: 1, color: "#10b981" },
-          ].map(m => (
-            <div key={m.name} style={{ marginBottom: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: m.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10, fontWeight: 700 }}>{m.name[0]}</div>
-                  <span style={{ fontSize: 12, color: "#e2e8f0", fontWeight: 600 }}>{m.name}</span>
+        <div style={{ flex: 1 }}>
+          <ChartCard title="Team Performance" sub="Tickets resolved this week">
+            {TEAM_DATA.map(m => (
+              <div key={m.name} style={{ marginBottom: 18 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: m.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 800 }}>{m.name[0]}</div>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#0F1117" }}>{m.name}</span>
+                  </div>
+                  <span style={{ fontSize: 11, color: "#9CA3AF" }}>{m.resolved} resolved · <span style={{ color: "#EF4444" }}>{m.open} open</span></span>
                 </div>
-                <span style={{ fontSize: 11, color: "#4a5568" }}>{m.resolved} resolved · {m.open} open</span>
+                <div style={{ height: 7, background: "#F3F4F6", borderRadius: 10, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${(m.resolved / m.max) * 100}%`, background: `linear-gradient(90deg, ${m.color}, ${m.color}bb)`, borderRadius: 10, transition: "width 0.6s ease" }} />
+                </div>
               </div>
-              <div style={{ height: 6, background: "#161b27", borderRadius: 4, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${(m.resolved / 15) * 100}%`, background: m.color, borderRadius: 4 }} />
-              </div>
-            </div>
-          ))}
+            ))}
+          </ChartCard>
         </div>
       </div>
     </div>

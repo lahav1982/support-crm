@@ -1,20 +1,16 @@
-// lib/claude.js — AI reply generation
+// lib/claude.js — calls our secure Vercel backend (which calls Anthropic)
 export async function generateReply(ticket, businessContext = "") {
-  const system = `You are a professional customer support agent. Be warm, helpful, empathetic, and solution-focused. Keep replies concise (3-5 sentences). Always acknowledge the customer's concern, provide a clear action or solution, and end with an offer to help further.${businessContext ? `\n\nBusiness context: ${businessContext}` : ""}`;
-
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetch("/api/generate-reply", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1000,
-      system,
-      messages: [{
-        role: "user",
-        content: `Write a customer support reply to this email:\n\nFrom: ${ticket.customerName} (${ticket.customerEmail})\nSubject: ${ticket.subject}\nMessage: ${ticket.body}\n\nWrite only the email body. Start directly with the response.`,
-      }],
-    }),
+    body: JSON.stringify({ ticket, businessContext }),
   });
+
   const data = await response.json();
-  return data.content?.map(c => c.text || "").join("") || "Sorry, could not generate a reply.";
+
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to generate reply");
+  }
+
+  return data.reply || "Sorry, could not generate a reply.";
 }

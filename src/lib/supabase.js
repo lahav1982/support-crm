@@ -49,19 +49,30 @@ export async function createTicket(ticket) {
 }
 
 export async function updateTicket(id, changes) {
-  // Map camelCase to snake_case for Supabase
   const mapped = {};
-  if (changes.status      !== undefined) mapped.status      = changes.status;
-  if (changes.priority    !== undefined) mapped.priority    = changes.priority;
-  if (changes.assignedTo  !== undefined) mapped.assigned_to = changes.assignedTo;
-  if (changes.notes       !== undefined) mapped.notes       = changes.notes;
-  if (changes.replies     !== undefined) mapped.replies     = changes.replies;
+  if (changes.status     !== undefined) mapped.status      = changes.status;
+  if (changes.priority   !== undefined) mapped.priority    = changes.priority;
+  if (changes.assignedTo !== undefined) mapped.assigned_to = changes.assignedTo;
+  if (changes.notes      !== undefined) mapped.notes       = changes.notes;
+  // Replies must be stored as a JSON string so Supabase treats it as JSONB
+  if (changes.replies    !== undefined) mapped.replies     = changes.replies;
 
-  return query(`tickets?id=eq.${id}`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/tickets?id=eq.${id}`, {
     method: "PATCH",
-    headers: { "Prefer": "return=representation" },
+    headers: {
+      ...headers,
+      "Prefer": "return=representation",
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(mapped),
   });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`updateTicket failed: ${err}`);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 }
 
 // ── CUSTOMERS ─────────────────────────────────────────
@@ -91,9 +102,13 @@ export async function fetchSettings() {
 }
 
 export async function saveSettings(ctx) {
-  return query("settings", {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/settings`, {
     method: "POST",
-    headers: { "Prefer": "resolution=merge-duplicates,return=representation" },
+    headers: {
+      ...headers,
+      "Prefer": "resolution=merge-duplicates,return=representation",
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
       id:              1,
       company_name:    ctx.companyName    || "",
@@ -104,6 +119,13 @@ export async function saveSettings(ctx) {
       extra_info:      ctx.extraInfo      || "",
     }),
   });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`saveSettings failed: ${err}`);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 }
 
 // ── HELPERS ───────────────────────────────────────────

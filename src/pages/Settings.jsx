@@ -33,8 +33,8 @@ export default function Settings({ context, onSave }) {
 
         {/* Header */}
         <div style={{ marginBottom: 28 }}>
-          <h2 style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 800, color: "#0F1117", letterSpacing: "-0.5px" }}>AI Reply Settings</h2>
-          <p style={{ margin: 0, fontSize: 13, color: "#6B7280", lineHeight: 1.65 }}>
+          <h2 style={{ margin: "0 0 6px", fontSize: 22, fontWeight: 800, color: "#0F1117", letterSpacing: "-0.5px" }}>AI Reply Settings</h2>
+          <p style={{ margin: 0, fontSize: 15, color: "#6B7280", lineHeight: 1.65 }}>
             Tell the AI about your business. The more detail you add, the more accurate and on-brand every generated reply will be.
           </p>
         </div>
@@ -43,15 +43,15 @@ export default function Settings({ context, onSave }) {
         <div style={{ background: "#fff", border: "1px solid #EAECF0", borderRadius: 12, padding: "14px 18px", marginBottom: 24, display: "flex", alignItems: "center", gap: 14, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
           <div style={{ flex: 1 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#0F1117" }}>Setup progress</span>
-              <span style={{ fontSize: 12, color: "#6B7280" }}>{filledCount} of {FIELDS.length} fields filled</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#0F1117" }}>Setup progress</span>
+              <span style={{ fontSize: 14, color: "#6B7280" }}>{filledCount} of {FIELDS.length} fields filled</span>
             </div>
             <div style={{ height: 6, background: "#F3F4F6", borderRadius: 10, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${(filledCount / FIELDS.length) * 100}%`, background: "linear-gradient(90deg, #6366F1, #8B5CF6)", borderRadius: 10, transition: "width 0.3s ease" }} />
             </div>
           </div>
           {hasContent && (
-            <span style={{ background: "#F0FDF4", color: "#16A34A", fontSize: 11, fontWeight: 700, borderRadius: 20, padding: "4px 12px", border: "1px solid #BBF7D0", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 5 }}>
+            <span style={{ background: "#F0FDF4", color: "#16A34A", fontSize: 13, fontWeight: 700, borderRadius: 20, padding: "4px 12px", border: "1px solid #BBF7D0", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 6, height: 6, background: "#22C55E", borderRadius: "50%", display: "inline-block" }} />Active
             </span>
           )}
@@ -62,18 +62,18 @@ export default function Settings({ context, onSave }) {
           {FIELDS.map(f => (
             <div key={f.key} style={{ background: "#fff", border: "1px solid #EAECF0", borderRadius: 12, padding: "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", transition: "border 0.15s" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: 15 }}>{f.icon}</span>
-                <label style={{ fontSize: 13, fontWeight: 700, color: "#0F1117" }}>{f.label}</label>
+                <span style={{ fontSize: 17 }}>{f.icon}</span>
+                <label style={{ fontSize: 15, fontWeight: 700, color: "#0F1117" }}>{f.label}</label>
                 {form[f.key]?.trim() && <span style={{ marginLeft: "auto", width: 7, height: 7, background: "#22C55E", borderRadius: "50%", display: "inline-block" }} />}
               </div>
-              <p style={{ margin: "0 0 10px 23px", fontSize: 11.5, color: "#9CA3AF" }}>{f.hint}</p>
+              <p style={{ margin: "0 0 10px 23px", fontSize: 13.5, color: "#9CA3AF" }}>{f.hint}</p>
               {f.key === "extraInfo" ? (
                 <textarea
                   value={form[f.key] || ""}
                   onChange={e => handleChange(f.key, e.target.value)}
                   placeholder={f.placeholder}
                   rows={3}
-                  style={{ width: "100%", background: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 9, color: "#0F1117", padding: "10px 12px", fontSize: 13, outline: "none", fontFamily: "inherit", lineHeight: 1.6, resize: "vertical" }}
+                  style={{ width: "100%", background: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 9, color: "#0F1117", padding: "10px 12px", fontSize: 15, outline: "none", fontFamily: "inherit", lineHeight: 1.6, resize: "vertical" }}
                   onFocus={e => { e.target.style.borderColor = "#6366F1"; e.target.style.background = "#fff"; }}
                   onBlur={e => { e.target.style.borderColor = "#E5E7EB"; e.target.style.background = "#F9FAFB"; }}
                 />
@@ -82,7 +82,7 @@ export default function Settings({ context, onSave }) {
                   value={form[f.key] || ""}
                   onChange={e => handleChange(f.key, e.target.value)}
                   placeholder={f.placeholder}
-                  style={{ width: "100%", background: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 9, color: "#0F1117", padding: "10px 12px", fontSize: 13, outline: "none", fontFamily: "inherit" }}
+                  style={{ width: "100%", background: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 9, color: "#0F1117", padding: "10px 12px", fontSize: 15, outline: "none", fontFamily: "inherit" }}
                   onFocus={e => { e.target.style.borderColor = "#6366F1"; e.target.style.background = "#fff"; }}
                   onBlur={e => { e.target.style.borderColor = "#E5E7EB"; e.target.style.background = "#F9FAFB"; }}
                 />
@@ -94,17 +94,17 @@ export default function Settings({ context, onSave }) {
         {/* Save */}
         <div style={{ marginTop: 24, display: "flex", alignItems: "center", gap: 14 }}>
           <button onClick={handleSave}
-            style={{ background: saved ? "#F0FDF4" : "linear-gradient(135deg, #6366F1, #8B5CF6)", color: saved ? "#16A34A" : "#fff", border: saved ? "1.5px solid #BBF7D0" : "none", borderRadius: 10, padding: "13px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer", transition: "all 0.2s", boxShadow: saved ? "none" : "0 4px 14px rgba(99,102,241,0.35)", letterSpacing: "-0.2px" }}>
+            style={{ background: saved ? "#F0FDF4" : "linear-gradient(135deg, #6366F1, #8B5CF6)", color: saved ? "#16A34A" : "#fff", border: saved ? "1.5px solid #BBF7D0" : "none", borderRadius: 10, padding: "13px 28px", fontSize: 16, fontWeight: 700, cursor: "pointer", transition: "all 0.2s", boxShadow: saved ? "none" : "0 4px 14px rgba(99,102,241,0.35)", letterSpacing: "-0.2px" }}>
             {saved ? "✓ Settings saved!" : "Save Settings"}
           </button>
-          {saved && <span style={{ fontSize: 12, color: "#9CA3AF" }}>AI replies will now use your business info</span>}
+          {saved && <span style={{ fontSize: 14, color: "#9CA3AF" }}>AI replies will now use your business info</span>}
         </div>
 
         {/* Preview */}
         {hasContent && (
           <div style={{ marginTop: 28, background: "#fff", border: "1px solid #EAECF0", borderRadius: 12, padding: "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Preview — what the AI sees</div>
-            <pre style={{ margin: 0, fontSize: 12, color: "#6366F1", fontFamily: "'Courier New', monospace", whiteSpace: "pre-wrap", lineHeight: 1.8, background: "#F5F3FF", padding: "14px", borderRadius: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Preview — what the AI sees</div>
+            <pre style={{ margin: 0, fontSize: 14, color: "#6366F1", fontFamily: "'Courier New', monospace", whiteSpace: "pre-wrap", lineHeight: 1.8, background: "#F5F3FF", padding: "14px", borderRadius: 8 }}>
               {buildPrompt(form)}
             </pre>
           </div>

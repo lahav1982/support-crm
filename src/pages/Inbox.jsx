@@ -6,35 +6,43 @@ import { updateTicket, createTicket, rowToTicket } from "../lib/supabase.js";
 export default function Inbox({ tickets, setTickets, businessContext, onNavigate }) {
   const [tab, setTab] = useState("open");
   const [selected, setSelected] = useState(
-    tickets.filter(t => t.type !== "ticket")[0] || null
+    () => tickets.filter(t => t.type !== "ticket")[0] || null
   );
   const [draft, setDraft] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [replySent, setReplySent] = useState(false);
 
-  const [showSummarizer, setShowSummarizer] = useState(false);
-  const [summarizing, setSummarizing] = useState(false);
-  const [summary, setSummary] = useState(null);
-  const [creatingTicket, setCreatingTicket] = useState(false);
-  const [ticketCreated, setTicketCreated] = useState(false);
+  // Convert-to-ticket state
+  const [converting, setConverting] = useState(false);
+  const [convertError, setConvertError] = useState(null);
 
-  // Inbox only shows emails (not converted tickets)
-  const emailTickets = tickets.filter(t => t.type !== "ticket");
-  const filtered = emailTickets.filter(t => tab === "all" ? true : t.status === tab);
+  // Only show emails in inbox (not tickets)
+  const emails = tickets.filter(t => t.type !== "ticket");
+  const filtered = emails.filter(t =>
+    tab === "all" ? true : t.status === tab
+  );
 
-  function selectTicket(ticket) {
-    setSelected(ticket); setDraft(""); setReplySent(false);
-    setShowSummarizer(false); setSummary(null); setTicketCreated(false);
+  function selectEmail(t) {
+    setSelected(t);
+    setDraft("");
+    setReplySent(false);
+    setConvertError(null);
   }
 
+  // ── AI reply ──────────────────────────────────────
   async function handleGenerate() {
-    setLoading(true); setDraft("");
-    try { setDraft(await generateReply(selected, businessContext)); }
-    catch (e) { setDraft(`Error: ${e.message}`); }
-    setLoading(false);
+    setAiLoading(true);
+    setDraft("");
+    try {
+      setDraft(await generateReply(selected, businessContext));
+    } catch (e) {
+      setDraft("Error generating reply. Please try again.");
+    }
+    setAiLoading(false);
   }
 
+  // ── Send reply (keep open) ────────────────────────
   async function handleSendReply() {
     if (!draft.trim() || saving) return;
     const reply = { id: Date.now(), author: "You", body: draft, timestamp: Date.now() };
@@ -44,10 +52,13 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
     setSaving(false);
     const updated = { ...selected, replies: newReplies };
     setTickets(prev => prev.map(t => t.id === selected.id ? updated : t));
-    setSelected(updated); setDraft("");
-    setReplySent(true); setTimeout(() => setReplySent(false), 2500);
+    setSelected(updated);
+    setDraft("");
+    setReplySent(true);
+    setTimeout(() => setReplySent(false), 2500);
   }
 
+  // ── Send reply + resolve ──────────────────────────
   async function handleSendAndResolve() {
     if (!draft.trim() || saving) return;
     const reply = { id: Date.now(), author: "You", body: draft, timestamp: Date.now() };
@@ -57,10 +68,13 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
     setSaving(false);
     const updated = { ...selected, status: "resolved", replies: newReplies };
     setTickets(prev => prev.map(t => t.id === selected.id ? updated : t));
-    setSelected(updated); setDraft("");
-    setReplySent(true); setTimeout(() => setReplySent(false), 2500);
+    setSelected(updated);
+    setDraft("");
+    setReplySent(true);
+    setTimeout(() => setReplySent(false), 2500);
   }
 
+  // ── Priority / assign / notes ────────────────────
   async function handleAssign(val) {
     const assignedTo = Number(val);
     await updateTicket(selected.id, { assignedTo });
@@ -76,7 +90,7 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
     setSelected(updated);
   }
 
-  async function handleNote(notes) {
+  function handleNoteChange(notes) {
     const updated = { ...selected, notes };
     setSelected(updated);
     setTickets(prev => prev.map(t => t.id === selected.id ? updated : t));
@@ -86,90 +100,142 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
     await updateTicket(selected.id, { notes: selected.notes });
   }
 
-  async function handleSummarize() {
-    setShowSummarizer(true); setSummarizing(true);
-    setSummary(null); setTicketCreated(false);
+  // ── CONVERT TO TICKET (single click, full auto) ──
+  async function handleConvert() {
+    if (converting) return;
+
+    // Already has a ticket — just navigate
+    if (selected.linkedTicketId) {
+      onNavigate("tickets");
+      return;
+    }
+
+    setConverting(true);
+    setConvertError(null);
+
     try {
-      const res = await fetch("/api/summarize-ticket", {
+      // 1. Ask AI to summarise the conversation
+      const aiRes = await fetch("/api/summarize-ticket", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ticket: selected }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setSummary(data);
-    } catch (e) { setSummary({ error: e.message }); }
-    setSummarizing(false);
-  }
+      const aiData = await aiRes.json();
+      if (!aiRes.ok) throw new Error(aiData.error || "AI failed");
 
-  async function handleCreateTicket() {
-    if (!summary || summary.error) return;
-    setCreatingTicket(true);
-    try {
-      const newTicket = {
+      // 2. Create the ticket row in Supabase
+      const rows = await createTicket({
         customerId:    selected.customerId,
         customerName:  selected.customerName,
         customerEmail: selected.customerEmail,
-        subject:       summary.subject,
-        body:          summary.summary,
+        subject:       aiData.subject  || selected.subject,
+        body:          aiData.summary  || selected.body,
         status:        "open",
-        priority:      summary.priority || "medium",
-        tag:           summary.tag || "General",
+        priority:      aiData.priority || selected.priority || "medium",
+        tag:           aiData.tag      || selected.tag      || "General",
         assignedTo:    selected.assignedTo || 1,
-        notes:         `Action needed: ${summary.action}\n\nCreated from conversation #${selected.id}`,
+        notes:         aiData.action ? `Action needed: ${aiData.action}` : "",
         replies:       [],
         type:          "ticket",
-      };
-      const rows = await createTicket(newTicket);
-      if (rows?.[0]) {
-        const created = rowToTicket(rows[0]);
-        setTickets(prev => [created, ...prev]);
-      }
-      setTicketCreated(true);
-    } catch (e) { console.error("Create ticket error:", e); }
-    setCreatingTicket(false);
+      });
+
+      if (!rows || rows.length === 0) throw new Error("Ticket was not saved — check Supabase");
+      const newTicket = rowToTicket(rows[0]);
+
+      // 3. Add new ticket to global state
+      setTickets(prev => [newTicket, ...prev]);
+
+      // 4. Flag THIS email with the linked ticket id (stored in notes field)
+      const flagNote = `__linked_ticket:${newTicket.id}__`;
+      const updatedNotes = (selected.notes || "").replace(/__linked_ticket:\d+__/g, "").trim()
+        + (selected.notes?.trim() ? "\n" : "") + flagNote;
+      await updateTicket(selected.id, { notes: updatedNotes });
+
+      // 5. Update local selected so the badge appears immediately
+      const flagged = { ...selected, notes: updatedNotes, linkedTicketId: newTicket.id };
+      setSelected(flagged);
+      setTickets(prev => prev.map(t => t.id === selected.id ? flagged : t));
+
+    } catch (e) {
+      console.error("Convert error:", e);
+      setConvertError(e.message);
+    }
+
+    setConverting(false);
   }
 
+  // Derive linkedTicketId from notes field (survives page refresh)
+  function getLinkedTicketId(ticket) {
+    if (!ticket) return null;
+    if (ticket.linkedTicketId) return ticket.linkedTicketId;
+    const m = (ticket.notes || "").match(/__linked_ticket:(\d+)__/);
+    return m ? Number(m[1]) : null;
+  }
+
+  const linkedTicketId = getLinkedTicketId(selected);
   const tag = selected ? TAG_COLORS[selected.tag] || { bg: "#F3F4F6", text: "#6B7280", dot: "#9CA3AF" } : null;
   const pri = selected ? PRIORITY_COLORS[selected.priority] || {} : null;
 
   return (
     <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
 
-      {/* Ticket list */}
+      {/* ── Email list ── */}
       <div style={{ width: 290, background: "#fff", borderRight: "1px solid #EAECF0", display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", padding: "12px 12px 0", gap: 4 }}>
           {["open", "resolved", "all"].map(t => (
-            <button key={t} onClick={() => setTab(t)}
-              style={{ flex: 1, padding: "7px 0", fontSize: 11, fontWeight: tab === t ? 700 : 500, color: tab === t ? "#6366F1" : "#9CA3AF", background: tab === t ? "#F0EFFE" : "transparent", border: "none", borderRadius: 7, cursor: "pointer", textTransform: "capitalize" }}>
-              {t}
-            </button>
+            <button key={t} onClick={() => setTab(t)} style={{
+              flex: 1, padding: "7px 0", fontSize: 11, border: "none", borderRadius: 7, cursor: "pointer",
+              fontWeight: tab === t ? 700 : 500,
+              color: tab === t ? "#6366F1" : "#9CA3AF",
+              background: tab === t ? "#F0EFFE" : "transparent",
+              textTransform: "capitalize",
+            }}>{t}</button>
           ))}
         </div>
-        <div style={{ padding: "8px 6px 4px 12px", marginTop: 4 }}>
-          <span style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600 }}>{filtered.length} email{filtered.length !== 1 ? "s" : ""}</span>
+
+        <div style={{ padding: "8px 12px 4px", fontSize: 11, color: "#9CA3AF", fontWeight: 600 }}>
+          {filtered.length} email{filtered.length !== 1 ? "s" : ""}
         </div>
+
         <div style={{ overflowY: "auto", flex: 1, padding: "0 8px 8px" }}>
           {filtered.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "40px 16px", color: "#9CA3AF", fontSize: 13 }}>No {tab === "all" ? "" : tab} emails</div>
-          ) : filtered.map(ticket => {
-            const tc = TAG_COLORS[ticket.tag] || { bg: "#F3F4F6", text: "#6B7280", dot: "#9CA3AF" };
-            const isActive = selected?.id === ticket.id;
+            <div style={{ textAlign: "center", padding: "40px 16px", color: "#9CA3AF", fontSize: 13 }}>
+              No {tab === "all" ? "" : tab} emails
+            </div>
+          ) : filtered.map(email => {
+            const tc = TAG_COLORS[email.tag] || { bg: "#F3F4F6", text: "#6B7280", dot: "#9CA3AF" };
+            const isActive = selected?.id === email.id;
+            const hasLinked = getLinkedTicketId(email) !== null;
             return (
-              <div key={ticket.id} onClick={() => selectTicket(ticket)}
-                style={{ padding: "12px", borderRadius: 10, cursor: "pointer", background: isActive ? "#F5F3FF" : "transparent", border: isActive ? "1.5px solid #DDD6FE" : "1.5px solid transparent", marginBottom: 3, transition: "all 0.1s" }}>
+              <div key={email.id} onClick={() => selectEmail(email)} style={{
+                padding: "12px", borderRadius: 10, cursor: "pointer", marginBottom: 3, transition: "all 0.1s",
+                background: isActive ? "#F5F3FF" : "transparent",
+                border: isActive ? "1.5px solid #DDD6FE" : "1.5px solid transparent",
+              }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                  <span style={{ fontWeight: 700, fontSize: 12.5, color: "#0F1117" }}>{ticket.customerName}</span>
-                  <span style={{ fontSize: 10, color: "#9CA3AF" }}>{ticket.time}</span>
+                  <span style={{ fontWeight: 700, fontSize: 12.5, color: "#0F1117" }}>{email.customerName}</span>
+                  <span style={{ fontSize: 10, color: "#9CA3AF" }}>{email.time}</span>
                 </div>
-                <div style={{ fontSize: 12, color: "#374151", fontWeight: 600, marginBottom: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ticket.subject}</div>
-                <div style={{ fontSize: 11, color: "#9CA3AF", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 8 }}>{ticket.body.slice(0, 52)}…</div>
-                <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                <div style={{ fontSize: 12, color: "#374151", fontWeight: 600, marginBottom: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {email.subject}
+                </div>
+                <div style={{ fontSize: 11, color: "#9CA3AF", marginBottom: 7, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {email.body.slice(0, 55)}…
+                </div>
+                <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
                   <span style={{ background: tc.bg, color: tc.text, fontSize: 10, fontWeight: 600, borderRadius: 6, padding: "2px 7px", display: "flex", alignItems: "center", gap: 3 }}>
-                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: tc.dot, display: "inline-block" }} />{ticket.tag}
+                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: tc.dot, display: "inline-block" }} />{email.tag}
                   </span>
-                  <span style={{ background: PRIORITY_COLORS[ticket.priority]?.bg, color: PRIORITY_COLORS[ticket.priority]?.text, fontSize: 10, fontWeight: 600, borderRadius: 6, padding: "2px 7px" }}>{ticket.priority}</span>
-                  {ticket.status === "resolved" && <span style={{ background: "#F0FDF4", color: "#16A34A", fontSize: 10, fontWeight: 600, borderRadius: 6, padding: "2px 7px" }}>✓ resolved</span>}
+                  <span style={{ background: PRIORITY_COLORS[email.priority]?.bg, color: PRIORITY_COLORS[email.priority]?.text, fontSize: 10, fontWeight: 600, borderRadius: 6, padding: "2px 7px" }}>{email.priority}</span>
+                  {email.status === "resolved" && (
+                    <span style={{ background: "#F0FDF4", color: "#16A34A", fontSize: 10, fontWeight: 600, borderRadius: 6, padding: "2px 7px" }}>✓ resolved</span>
+                  )}
+                  {/* Ticket flag badge */}
+                  {hasLinked && (
+                    <span style={{ background: "#EFF6FF", color: "#3B82F6", fontSize: 10, fontWeight: 700, borderRadius: 6, padding: "2px 7px", display: "flex", alignItems: "center", gap: 3 }}>
+                      🎫 Ticket
+                    </span>
+                  )}
                 </div>
               </div>
             );
@@ -177,190 +243,174 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
         </div>
       </div>
 
-      {/* Main panel */}
+      {/* ── Main view ── */}
       {selected ? (
         <>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#F5F6FA" }}>
 
             {/* Header */}
-            <div style={{ background: "#fff", padding: "16px 24px", borderBottom: "1px solid #EAECF0" }}>
+            <div style={{ background: "#fff", padding: "16px 24px", borderBottom: "1px solid #EAECF0", flexShrink: 0 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div>
-                  <h2 style={{ fontSize: 15, fontWeight: 800, color: "#0F1117", marginBottom: 7, letterSpacing: "-0.3px" }}>{selected.subject}</h2>
+                  <h2 style={{ fontSize: 15, fontWeight: 800, color: "#0F1117", marginBottom: 7, letterSpacing: "-0.3px" }}>
+                    {selected.subject}
+                  </h2>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg,#6366F1,#8B5CF6)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 11 }}>{selected.customerName?.[0]}</div>
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg,#6366F1,#8B5CF6)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 11 }}>
+                      {selected.customerName?.[0]}
+                    </div>
                     <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>{selected.customerName}</span>
                     <span style={{ fontSize: 12, color: "#9CA3AF" }}>{selected.customerEmail}</span>
-                    <span style={{ fontSize: 11, color: "#D1D5DB" }}>·</span>
+                    <span style={{ color: "#D1D5DB" }}>·</span>
                     <span style={{ fontSize: 11, color: "#9CA3AF" }}>{selected.date}</span>
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   {saving && <span style={{ fontSize: 11, color: "#9CA3AF" }}>Saving…</span>}
-                  <button onClick={handleSummarize}
-                    style={{ display: "flex", alignItems: "center", gap: 6, background: showSummarizer ? "#F0EFFE" : "#F9FAFB", color: showSummarizer ? "#6366F1" : "#6B7280", border: `1.5px solid ${showSummarizer ? "#DDD6FE" : "#E5E7EB"}`, borderRadius: 8, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
-                    <TicketIcon />Convert to Ticket
-                  </button>
                   <span style={{ background: tag.bg, color: tag.text, fontSize: 11, fontWeight: 600, borderRadius: 7, padding: "4px 10px" }}>{selected.tag}</span>
                   <span style={{ background: pri.bg, color: pri.text, fontSize: 11, fontWeight: 600, borderRadius: 7, padding: "4px 10px", textTransform: "capitalize" }}>{selected.priority}</span>
                 </div>
               </div>
             </div>
 
-            {/* Summarizer panel */}
-            {showSummarizer && (
-              <div style={{ background: "#F5F3FF", borderBottom: "1px solid #DDD6FE", padding: "16px 24px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "#6366F1", textTransform: "uppercase", letterSpacing: "0.06em" }}>✦ AI Ticket Summary</span>
-                  <button onClick={() => { setShowSummarizer(false); setSummary(null); setTicketCreated(false); }}
-                    style={{ background: "none", border: "none", color: "#9CA3AF", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>×</button>
+            {/* Ticket flag banner (shows after ticket is created) */}
+            {linkedTicketId && (
+              <div style={{ background: "#EFF6FF", borderBottom: "1px solid #BFDBFE", padding: "10px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 16 }}>🎫</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#1D4ED8" }}>Ticket #{linkedTicketId} created from this conversation</span>
+                  <span style={{ fontSize: 12, color: "#3B82F6" }}>— being tracked in the Tickets section</span>
                 </div>
-                {summarizing && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#6B7280", fontSize: 13 }}>
-                    <span style={{ width: 14, height: 14, border: "2px solid #DDD6FE", borderTopColor: "#6366F1", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />
-                    Analyzing conversation…
-                  </div>
-                )}
-                {summary && !summary.error && !summarizing && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    <div style={{ display: "flex", gap: 10 }}>
-                      <div style={{ flex: 1, background: "#fff", borderRadius: 9, padding: "12px 14px", border: "1px solid #E5E7EB" }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Subject</div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "#0F1117" }}>{summary.subject}</div>
-                      </div>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <div style={{ background: "#fff", borderRadius: 9, padding: "12px 14px", border: "1px solid #E5E7EB", textAlign: "center" }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Priority</div>
-                          <span style={{ background: PRIORITY_COLORS[summary.priority]?.bg, color: PRIORITY_COLORS[summary.priority]?.text, fontSize: 11, fontWeight: 700, borderRadius: 6, padding: "3px 10px", textTransform: "capitalize" }}>{summary.priority}</span>
-                        </div>
-                        <div style={{ background: "#fff", borderRadius: 9, padding: "12px 14px", border: "1px solid #E5E7EB", textAlign: "center" }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Tag</div>
-                          <span style={{ background: TAG_COLORS[summary.tag]?.bg || "#F3F4F6", color: TAG_COLORS[summary.tag]?.text || "#6B7280", fontSize: 11, fontWeight: 700, borderRadius: 6, padding: "3px 10px" }}>{summary.tag}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{ background: "#fff", borderRadius: 9, padding: "12px 14px", border: "1px solid #E5E7EB" }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Summary</div>
-                      <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.6 }}>{summary.summary}</div>
-                    </div>
-                    <div style={{ background: "#FFFBEB", borderRadius: 9, padding: "12px 14px", border: "1px solid #FDE68A", display: "flex", gap: 10, alignItems: "flex-start" }}>
-                      <span style={{ fontSize: 16 }}>⚡</span>
-                      <div>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: "#D97706", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Action Needed</div>
-                        <div style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>{summary.action}</div>
-                      </div>
-                    </div>
-                    {!ticketCreated ? (
-                      <button onClick={handleCreateTicket} disabled={creatingTicket}
-                        style={{ alignSelf: "flex-start", background: creatingTicket ? "#E5E7EB" : "linear-gradient(135deg,#6366F1,#8B5CF6)", color: creatingTicket ? "#9CA3AF" : "#fff", border: "none", borderRadius: 9, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: creatingTicket ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, boxShadow: creatingTicket ? "none" : "0 2px 8px rgba(99,102,241,0.3)" }}>
-                        {creatingTicket
-                          ? <><span style={{ width: 12, height: 12, border: "2px solid #9CA3AF", borderTopColor: "transparent", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />Creating…</>
-                          : <><TicketIcon />Create Ticket</>}
-                      </button>
-                    ) : (
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#16A34A", fontSize: 13, fontWeight: 700 }}>
-                          <span style={{ width: 22, height: 22, background: "#F0FDF4", border: "2px solid #BBF7D0", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>✓</span>
-                          Ticket created!
-                        </div>
-                        <button onClick={() => onNavigate("tickets")}
-                          style={{ background: "#6366F1", color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                          View in Tickets →
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {summary?.error && <div style={{ color: "#EF4444", fontSize: 13 }}>Error: {summary.error}</div>}
+                <button onClick={() => onNavigate("tickets")} style={{ background: "#3B82F6", color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                  View Ticket →
+                </button>
               </div>
             )}
 
             {/* Email body */}
-            <div style={{ padding: "18px 24px", background: "#fff", borderBottom: "1px solid #EAECF0", maxHeight: 140, overflowY: "auto" }}>
+            <div style={{ padding: "18px 24px", background: "#fff", borderBottom: "1px solid #EAECF0", maxHeight: 150, overflowY: "auto", flexShrink: 0 }}>
               <p style={{ margin: 0, fontSize: 13.5, color: "#374151", lineHeight: 1.75 }}>{selected.body}</p>
             </div>
 
-            {/* Replies */}
+            {/* Previous replies */}
             {selected.replies?.length > 0 && (
-              <div style={{ padding: "12px 24px", borderBottom: "1px solid #EAECF0", background: "#FAFAFA", maxHeight: 200, overflowY: "auto" }}>
+              <div style={{ padding: "12px 24px", borderBottom: "1px solid #EAECF0", background: "#FAFAFA", maxHeight: 200, overflowY: "auto", flexShrink: 0 }}>
                 {selected.replies.map((r, i) => (
                   <div key={i} style={{ background: "#fff", borderRadius: 10, padding: "11px 14px", marginBottom: 6, borderLeft: "3px solid #6366F1", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-                    <div style={{ fontSize: 11, color: "#9CA3AF", marginBottom: 4 }}><span style={{ color: "#6366F1", fontWeight: 700 }}>{r.author}</span> replied</div>
+                    <div style={{ fontSize: 11, color: "#9CA3AF", marginBottom: 4 }}>
+                      <span style={{ color: "#6366F1", fontWeight: 700 }}>{r.author}</span> replied
+                    </div>
                     <p style={{ margin: 0, fontSize: 13, color: "#374151", lineHeight: 1.65 }}>{r.body}</p>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Reply area */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "16px 24px", background: "#F5F6FA", overflow: "auto" }}>
+            {/* Reply box */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "16px 24px", overflow: "auto" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.06em" }}>Write Reply</span>
-                <button onClick={handleGenerate} disabled={loading}
-                  style={{ background: loading ? "#E5E7EB" : "linear-gradient(135deg,#6366F1,#8B5CF6)", color: loading ? "#9CA3AF" : "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: loading ? "none" : "0 2px 8px rgba(99,102,241,0.25)" }}>
-                  {loading ? <><span style={{ width: 11, height: 11, border: "2px solid #9CA3AF", borderTopColor: "transparent", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />Generating…</> : <>✦ Generate AI Reply</>}
+                <button onClick={handleGenerate} disabled={aiLoading} style={{
+                  background: aiLoading ? "#E5E7EB" : "linear-gradient(135deg,#6366F1,#8B5CF6)",
+                  color: aiLoading ? "#9CA3AF" : "#fff",
+                  border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700,
+                  cursor: aiLoading ? "not-allowed" : "pointer",
+                  display: "flex", alignItems: "center", gap: 6,
+                  boxShadow: aiLoading ? "none" : "0 2px 8px rgba(99,102,241,0.25)",
+                }}>
+                  {aiLoading
+                    ? <><Spinner />Generating…</>
+                    : <>✦ Generate AI Reply</>}
                 </button>
               </div>
 
               {replySent && (
                 <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 8, padding: "8px 14px", marginBottom: 10, fontSize: 12, color: "#16A34A", fontWeight: 600 }}>
-                  ✓ Reply saved successfully
+                  ✓ Reply saved
                 </div>
               )}
 
-              <textarea value={draft} onChange={e => setDraft(e.target.value)}
-                placeholder="Generate an AI reply or type your own response..."
-                style={{ flex: 1, minHeight: 120, resize: "none", border: "1.5px solid #E5E7EB", borderRadius: 10, padding: "12px 14px", fontSize: 13.5, color: "#0F1117", background: "#fff", outline: "none", lineHeight: 1.7, fontFamily: "inherit", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
+              {convertError && (
+                <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 14px", marginBottom: 10, fontSize: 12, color: "#DC2626" }}>
+                  ⚠ Ticket creation failed: {convertError}. Check your Supabase <code>type</code> column exists.
+                </div>
+              )}
+
+              <textarea
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                placeholder="Generate an AI reply or type your own…"
+                style={{ flex: 1, minHeight: 120, resize: "none", border: "1.5px solid #E5E7EB", borderRadius: 10, padding: "12px 14px", fontSize: 13.5, color: "#0F1117", background: "#fff", outline: "none", lineHeight: 1.7, fontFamily: "inherit" }}
                 onFocus={e => e.target.style.borderColor = "#6366F1"}
                 onBlur={e => e.target.style.borderColor = "#E5E7EB"}
               />
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10, gap: 8 }}>
-                <button onClick={() => setDraft("")} disabled={!draft.trim()}
-                  style={{ background: "#fff", border: "1.5px solid #E5E7EB", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 600, color: "#6B7280", cursor: draft.trim() ? "pointer" : "not-allowed", opacity: draft.trim() ? 1 : 0.5 }}>
-                  Clear
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
+                {/* Left: Convert to Ticket */}
+                <button onClick={handleConvert} disabled={converting} style={{
+                  display: "flex", alignItems: "center", gap: 7,
+                  background: linkedTicketId ? "#EFF6FF" : (converting ? "#F3F4F6" : "#fff"),
+                  color: linkedTicketId ? "#3B82F6" : (converting ? "#9CA3AF" : "#6366F1"),
+                  border: `1.5px solid ${linkedTicketId ? "#BFDBFE" : (converting ? "#E5E7EB" : "#DDD6FE")}`,
+                  borderRadius: 9, padding: "8px 16px", fontSize: 12, fontWeight: 700,
+                  cursor: converting ? "not-allowed" : "pointer",
+                }}>
+                  {converting
+                    ? <><Spinner color="#9CA3AF" />Creating ticket…</>
+                    : linkedTicketId
+                      ? <>🎫 View Ticket #{linkedTicketId}</>
+                      : <><TicketIcon />Convert to Ticket</>}
                 </button>
-                <button onClick={handleSendReply} disabled={!draft.trim() || saving}
-                  style={{ background: draft.trim() ? "#fff" : "#F9FAFB", color: draft.trim() ? "#6366F1" : "#9CA3AF", border: `1.5px solid ${draft.trim() ? "#DDD6FE" : "#E5E7EB"}`, borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: draft.trim() ? "pointer" : "not-allowed" }}>
-                  {saving ? "Saving…" : "Send Reply"}
-                </button>
-                <button onClick={handleSendAndResolve} disabled={!draft.trim() || saving}
-                  style={{ background: draft.trim() ? "#0F1117" : "#E5E7EB", color: draft.trim() ? "#fff" : "#9CA3AF", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 12, fontWeight: 700, cursor: draft.trim() ? "pointer" : "not-allowed" }}>
-                  {saving ? "Saving…" : "Send & Resolve →"}
-                </button>
+
+                {/* Right: reply buttons */}
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => setDraft("")} disabled={!draft.trim()} style={{ background: "#fff", border: "1.5px solid #E5E7EB", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 600, color: "#6B7280", cursor: draft.trim() ? "pointer" : "not-allowed", opacity: draft.trim() ? 1 : 0.45 }}>
+                    Clear
+                  </button>
+                  <button onClick={handleSendReply} disabled={!draft.trim() || saving} style={{
+                    background: draft.trim() ? "#fff" : "#F9FAFB",
+                    color: draft.trim() ? "#6366F1" : "#9CA3AF",
+                    border: `1.5px solid ${draft.trim() ? "#DDD6FE" : "#E5E7EB"}`,
+                    borderRadius: 8, padding: "8px 16px", fontSize: 12, fontWeight: 700,
+                    cursor: draft.trim() ? "pointer" : "not-allowed",
+                  }}>
+                    {saving ? "Saving…" : "Send Reply"}
+                  </button>
+                  <button onClick={handleSendAndResolve} disabled={!draft.trim() || saving} style={{
+                    background: draft.trim() ? "#0F1117" : "#E5E7EB",
+                    color: draft.trim() ? "#fff" : "#9CA3AF",
+                    border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 12, fontWeight: 700,
+                    cursor: draft.trim() ? "pointer" : "not-allowed",
+                  }}>
+                    {saving ? "Saving…" : "Send & Resolve →"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Meta panel */}
+          {/* ── Side panel ── */}
           <div style={{ width: 240, background: "#fff", borderLeft: "1px solid #EAECF0", padding: 18, overflowY: "auto", display: "flex", flexDirection: "column", gap: 22 }}>
-            <MetaSection label="Assigned To">
-              <select value={selected.assignedTo} onChange={e => handleAssign(e.target.value)}
-                style={{ width: "100%", background: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 8, color: "#0F1117", padding: "8px 10px", fontSize: 12, fontWeight: 600, outline: "none", cursor: "pointer" }}>
+            <Meta label="Assigned To">
+              <select value={selected.assignedTo} onChange={e => handleAssign(e.target.value)} style={{ width: "100%", background: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 8, color: "#0F1117", padding: "8px 10px", fontSize: 12, fontWeight: 600, outline: "none", cursor: "pointer" }}>
                 {TEAM.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
-            </MetaSection>
-            <MetaSection label="Priority">
+            </Meta>
+
+            <Meta label="Priority">
               <div style={{ display: "flex", gap: 5 }}>
                 {["high", "medium", "low"].map(p => (
-                  <button key={p} onClick={() => handlePriority(p)}
-                    style={{ flex: 1, padding: "6px 0", fontSize: 10, fontWeight: 700, borderRadius: 7, border: selected.priority === p ? "none" : "1.5px solid #E5E7EB", background: selected.priority === p ? PRIORITY_COLORS[p].bg : "#fff", color: selected.priority === p ? PRIORITY_COLORS[p].text : "#9CA3AF", cursor: "pointer", textTransform: "capitalize" }}>{p}</button>
+                  <button key={p} onClick={() => handlePriority(p)} style={{
+                    flex: 1, padding: "6px 0", fontSize: 10, fontWeight: 700, borderRadius: 7, cursor: "pointer", textTransform: "capitalize",
+                    border: selected.priority === p ? "none" : "1.5px solid #E5E7EB",
+                    background: selected.priority === p ? PRIORITY_COLORS[p].bg : "#fff",
+                    color: selected.priority === p ? PRIORITY_COLORS[p].text : "#9CA3AF",
+                  }}>{p}</button>
                 ))}
               </div>
-            </MetaSection>
-            <MetaSection label="Internal Notes">
-              <textarea value={selected.notes || ""} onChange={e => handleNote(e.target.value)} onBlur={handleNoteBlur}
-                placeholder="Private note — saved when you click away..."
-                style={{ width: "100%", minHeight: 88, resize: "none", background: "#FFFBEB", border: "1.5px solid #FDE68A", borderRadius: 8, color: "#374151", padding: "10px", fontSize: 12, outline: "none", fontFamily: "inherit", lineHeight: 1.5 }}
-              />
-            </MetaSection>
-            <MetaSection label="Customer">
-              <div style={{ background: "#F9FAFB", borderRadius: 9, padding: 12, border: "1px solid #EAECF0" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F1117", marginBottom: 2 }}>{selected.customerName}</div>
-                <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 8 }}>{selected.customerEmail}</div>
-                <div style={{ fontSize: 11, color: "#6B7280" }}>Category: <span style={{ color: tag.text, fontWeight: 600 }}>{selected.tag}</span></div>
-              </div>
-            </MetaSection>
-            <MetaSection label="Status">
+            </Meta>
+
+            <Meta label="Status">
               <div style={{ display: "flex", gap: 6 }}>
                 {["open", "resolved"].map(s => (
                   <button key={s} onClick={async () => {
@@ -368,11 +418,34 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
                     const updated = { ...selected, status: s };
                     setTickets(prev => prev.map(t => t.id === selected.id ? updated : t));
                     setSelected(updated);
-                  }}
-                    style={{ flex: 1, padding: "7px 0", fontSize: 11, fontWeight: 700, borderRadius: 7, border: "none", background: selected.status === s ? (s === "resolved" ? "#F0FDF4" : "#FEF2F2") : "#F9FAFB", color: selected.status === s ? (s === "resolved" ? "#16A34A" : "#EF4444") : "#9CA3AF", cursor: "pointer", textTransform: "capitalize" }}>{s}</button>
+                  }} style={{
+                    flex: 1, padding: "7px 0", fontSize: 11, fontWeight: 700, borderRadius: 7, border: "none", cursor: "pointer", textTransform: "capitalize",
+                    background: selected.status === s ? (s === "resolved" ? "#F0FDF4" : "#FEF2F2") : "#F9FAFB",
+                    color: selected.status === s ? (s === "resolved" ? "#16A34A" : "#EF4444") : "#9CA3AF",
+                  }}>{s}</button>
                 ))}
               </div>
-            </MetaSection>
+            </Meta>
+
+            <Meta label="Internal Notes">
+              <textarea
+                value={(selected.notes || "").replace(/__linked_ticket:\d+__\n?/g, "").trim()}
+                onChange={e => handleNoteChange(
+                  e.target.value + (getLinkedTicketId(selected) ? `\n__linked_ticket:${getLinkedTicketId(selected)}__` : "")
+                )}
+                onBlur={handleNoteBlur}
+                placeholder="Private note — saved on click away…"
+                style={{ width: "100%", minHeight: 88, resize: "none", background: "#FFFBEB", border: "1.5px solid #FDE68A", borderRadius: 8, color: "#374151", padding: "10px", fontSize: 12, outline: "none", fontFamily: "inherit", lineHeight: 1.5 }}
+              />
+            </Meta>
+
+            <Meta label="Customer">
+              <div style={{ background: "#F9FAFB", borderRadius: 9, padding: 12, border: "1px solid #EAECF0" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F1117", marginBottom: 2 }}>{selected.customerName}</div>
+                <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 6 }}>{selected.customerEmail}</div>
+                <div style={{ fontSize: 11, color: "#6B7280" }}>Category: <span style={{ color: tag.text, fontWeight: 600 }}>{selected.tag}</span></div>
+              </div>
+            </Meta>
           </div>
         </>
       ) : (
@@ -385,7 +458,7 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
   );
 }
 
-function MetaSection({ label, children }) {
+function Meta({ label, children }) {
   return (
     <div>
       <div style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>{label}</div>
@@ -394,6 +467,16 @@ function MetaSection({ label, children }) {
   );
 }
 
+function Spinner({ color = "#6366F1" }) {
+  return (
+    <span style={{ width: 11, height: 11, border: `2px solid #E5E7EB`, borderTopColor: color, borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />
+  );
+}
+
 function TicketIcon() {
-  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2z"/></svg>;
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2z"/>
+    </svg>
+  );
 }

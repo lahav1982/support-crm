@@ -75,6 +75,87 @@ export default function Settings({ context, onSave, gmailStatus, onDisconnectGma
           )}
         </div>
 
+        {/* Gmail Sync Filters — only show when connected */}
+        {gmailStatus?.connected && (
+          <div style={{ background: "#fff", border: "1px solid #EAECF0", borderRadius: 12, padding: "22px 24px", marginBottom: 24, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+              <span style={{ fontSize: 20 }}>🔍</span>
+              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#0F1117" }}>Gmail Sync Filters</h3>
+              {(form.gmailFilterKeywords || form.gmailFilterDomains) && (
+                <span style={{ marginLeft: "auto", background: "#F0FDF4", color: "#16A34A", fontSize: 12, fontWeight: 700, borderRadius: 20, padding: "3px 10px", border: "1px solid #BBF7D0" }}>Active</span>
+              )}
+            </div>
+            <p style={{ margin: "0 0 18px", fontSize: 15, color: "#6B7280", lineHeight: 1.65 }}>
+              Only emails matching <strong>at least one</strong> of these filters will be pulled into your Inbox when you sync.
+              Leave both empty to block syncing entirely.
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {/* Keywords */}
+              <div style={{ background: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 10, padding: "16px 18px" }}>
+                <label style={{ fontSize: 15, fontWeight: 700, color: "#0F1117", display: "block", marginBottom: 4 }}>Subject Keywords</label>
+                <p style={{ margin: "0 0 10px", fontSize: 13, color: "#9CA3AF" }}>
+                  Comma-separated. Emails whose subject contains any of these words will be pulled in.
+                  <br/>Example: <code style={{ background: "#F3F4F6", padding: "1px 5px", borderRadius: 4 }}>order, refund, shipping, help, issue</code>
+                </p>
+                <input
+                  value={form.gmailFilterKeywords || ""}
+                  onChange={e => handleChange("gmailFilterKeywords", e.target.value)}
+                  placeholder="e.g. order, refund, shipping, complaint, help"
+                  style={{ width: "100%", background: "#fff", border: "1.5px solid #E5E7EB", borderRadius: 8, color: "#0F1117", padding: "10px 12px", fontSize: 15, outline: "none", fontFamily: "inherit" }}
+                  onFocus={e => e.target.style.borderColor = "#6366F1"}
+                  onBlur={e => e.target.style.borderColor = "#E5E7EB"}
+                />
+                {form.gmailFilterKeywords && (
+                  <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 5 }}>
+                    {form.gmailFilterKeywords.split(",").map(k => k.trim()).filter(Boolean).map((k, i) => (
+                      <span key={i} style={{ background: "#F0EFFE", color: "#6366F1", fontSize: 12, fontWeight: 600, borderRadius: 6, padding: "3px 9px" }}>{k}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Domains */}
+              <div style={{ background: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 10, padding: "16px 18px" }}>
+                <label style={{ fontSize: 15, fontWeight: 700, color: "#0F1117", display: "block", marginBottom: 4 }}>Sender Domains</label>
+                <p style={{ margin: "0 0 10px", fontSize: 13, color: "#9CA3AF" }}>
+                  Comma-separated. Emails from these domains will always be pulled in, regardless of subject.
+                  <br/>Example: <code style={{ background: "#F3F4F6", padding: "1px 5px", borderRadius: 4 }}>shopify.com, amazon.com, mybigcustomer.com</code>
+                </p>
+                <input
+                  value={form.gmailFilterDomains || ""}
+                  onChange={e => handleChange("gmailFilterDomains", e.target.value)}
+                  placeholder="e.g. gmail.com, outlook.com, importantclient.com"
+                  style={{ width: "100%", background: "#fff", border: "1.5px solid #E5E7EB", borderRadius: 8, color: "#0F1117", padding: "10px 12px", fontSize: 15, outline: "none", fontFamily: "inherit" }}
+                  onFocus={e => e.target.style.borderColor = "#6366F1"}
+                  onBlur={e => e.target.style.borderColor = "#E5E7EB"}
+                />
+                {form.gmailFilterDomains && (
+                  <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 5 }}>
+                    {form.gmailFilterDomains.split(",").map(d => d.trim()).filter(Boolean).map((d, i) => (
+                      <span key={i} style={{ background: "#EFF6FF", color: "#3B82F6", fontSize: 12, fontWeight: 600, borderRadius: 6, padding: "3px 9px" }}>@{d.replace(/^@/, "")}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Preview */}
+              {(form.gmailFilterKeywords || form.gmailFilterDomains) && (
+                <div style={{ background: "#F5F3FF", border: "1px solid #DDD6FE", borderRadius: 9, padding: "12px 16px" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#6366F1", marginBottom: 5 }}>Gmail will search for:</div>
+                  <code style={{ fontSize: 12, color: "#4C1D95", wordBreak: "break-all", lineHeight: 1.6 }}>
+                    is:unread in:inbox{" "}
+                    {[
+                      form.gmailFilterKeywords && "(" + form.gmailFilterKeywords.split(",").map(k => k.trim()).filter(Boolean).map(k => 'subject:"' + k + '"').join(" OR ") + ")",
+                      form.gmailFilterDomains  && "(" + form.gmailFilterDomains.split(",").map(d => "from:@" + d.trim().replace(/^@/, "")).filter(Boolean).join(" OR ") + ")",
+                    ].filter(Boolean).join(" OR ")}
+                  </code>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Progress indicator */}
         <div style={{ background: "#fff", border: "1px solid #EAECF0", borderRadius: 12, padding: "14px 18px", marginBottom: 24, display: "flex", alignItems: "center", gap: 14, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
           <div style={{ flex: 1 }}>

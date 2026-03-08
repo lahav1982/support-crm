@@ -66,7 +66,9 @@ export default function App() {
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get("gmail_connected") === "1") {
     window.history.replaceState({}, "", "/");
-    fetchGmailStatus().then(g => setGmailStatus(g || { connected: false, email: null }));
+    fetchGmailStatus().then(g => {
+      setGmailStatus(g || { connected: false, email: null });
+    });
   }
 
   async function handleSaveContext(form) {
@@ -170,7 +172,7 @@ export default function App() {
           {page === "tickets"   && <Tickets   tickets={tickets} setTickets={setTickets} />}
           {page === "customers" && <Customers tickets={tickets} />}
           {page === "analytics" && <Analytics tickets={tickets} />}
-          {page === "settings"  && <Settings  context={contextForm} onSave={handleSaveContext} gmailStatus={gmailStatus} onDisconnectGmail={handleDisconnectGmail} />}
+          {page === "settings"  && <Settings  context={contextForm} onSave={handleSaveContext} gmailStatus={{ ...gmailStatus, filterKeywords: contextForm.gmailFilterKeywords, filterDomains: contextForm.gmailFilterDomains }} onDisconnectGmail={handleDisconnectGmail} />}
         </div>
       </div>
     </div>

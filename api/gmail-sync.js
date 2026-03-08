@@ -1,4 +1,4 @@
-// api/gmail-sync.js — fetches new unread emails from Gmail, saves to Supabase tickets
+// api/gmail-sync.js — fetches emails matching keyword/domain filters, saves to Supabase
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
   try {
-    // 1. Load tokens from Supabase
+    // 1. Load settings + tokens
     const settingsRes = await fetch(supabaseUrl + "/rest/v1/settings?id=eq.1&select=*", {
       headers: { "apikey": supabaseKey, "Authorization": "Bearer " + supabaseKey },
     });
@@ -21,15 +21,41 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Gmail not connected" });
     }
 
-    // 2. Refresh access token if expired
+    // 2. Refresh token if expired
     let accessToken = s.gmail_access_token;
     if (Date.now() > (s.gmail_token_expiry - 60000)) {
       accessToken = await refreshAccessToken(s.gmail_refresh_token, supabaseUrl, supabaseKey);
     }
 
-    // 3. Fetch unread emails from Gmail (last 50)
+    // 3. Build Gmail search query from saved filters
+    const keywords = (s.gmail_filter_keywords || "").split(",").map(k => k.trim()).filter(Boolean);
+    const domains  = (s.gmail_filter_domains  || "").split(",").map(d => d.trim()).filter(Boolean);
+
+    // If no filters set, refuse to pull everything
+    if (keywords.length === 0 && domains.length === 0) {
+      return res.status(400).json({
+        error: "No filters configured. Please set at least one keyword or domain in Settings before syncing.",
+        noFilters: true,
+      });
+    }
+
+    // Build Gmail query string: (subject:keyword1 OR subject:keyword2) OR (from:@domain1 OR from:@domain2)
+    const parts = [];
+    if (keywords.length > 0) {
+      const kParts = keywords.map(k => 'subject:"' + k + '"');
+      parts.push(kParts.length === 1 ? kParts[0] : "(" + kParts.join(" OR ") + ")");
+    }
+    if (domains.length > 0) {
+      const dParts = domains.map(d => "from:@" + d.replace(/^@/, ""));
+      parts.push(dParts.length === 1 ? dParts[0] : "(" + dParts.join(" OR ") + ")");
+    }
+    const gmailQuery = "is:unread in:inbox " + (parts.length > 1 ? "(" + parts.join(" OR ") + ")" : parts[0]);
+
+    console.log("Gmail query:", gmailQuery);
+
+    // 4. Fetch matching emails
     const listRes = await fetch(
-      "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20&q=is:unread+in:inbox",
+      "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=25&q=" + encodeURIComponent(gmailQuery),
       { headers: { Authorization: "Bearer " + accessToken } }
     );
     const listData = await listRes.json();
@@ -37,15 +63,16 @@ export default async function handler(req, res) {
 
     const messages = listData.messages || [];
     const imported = [];
+    const skipped  = [];
 
     for (const msg of messages) {
-      // Check if already imported (avoid duplicates)
-      const existing = await fetch(
+      // Skip duplicates
+      const existingRes = await fetch(
         supabaseUrl + "/rest/v1/tickets?gmail_message_id=eq." + msg.id + "&select=id",
         { headers: { "apikey": supabaseKey, "Authorization": "Bearer " + supabaseKey } }
       );
-      const existingData = await existing.json();
-      if (existingData?.length > 0) continue;
+      const existing = await existingRes.json();
+      if (existing?.length > 0) { skipped.push(msg.id); continue; }
 
       // Fetch full message
       const msgRes = await fetch(
@@ -53,11 +80,10 @@ export default async function handler(req, res) {
         { headers: { Authorization: "Bearer " + accessToken } }
       );
       const msgData = await msgRes.json();
-
       const parsed = parseGmailMessage(msgData);
-      if (!parsed.from || !parsed.subject) continue;
+      if (!parsed.fromEmail || !parsed.subject) continue;
 
-      // Save to Supabase as a ticket
+      // Save to Supabase
       await fetch(supabaseUrl + "/rest/v1/tickets", {
         method: "POST",
         headers: {
@@ -67,23 +93,23 @@ export default async function handler(req, res) {
           "Prefer":        "return=minimal",
         },
         body: JSON.stringify({
-          customer_name:       parsed.fromName || parsed.fromEmail,
-          customer_email:      parsed.fromEmail,
-          subject:             parsed.subject,
-          body:                parsed.body,
-          status:              "open",
-          priority:            "medium",
-          tag:                 "General",
-          assigned_to:         1,
-          notes:               "",
-          replies:             [],
-          type:                "email",
-          gmail_message_id:    msg.id,
-          gmail_thread_id:     msgData.threadId,
+          customer_name:      parsed.fromName || parsed.fromEmail,
+          customer_email:     parsed.fromEmail,
+          subject:            parsed.subject,
+          body:               parsed.body,
+          status:             "open",
+          priority:           "medium",
+          tag:                "General",
+          assigned_to:        1,
+          notes:              "",
+          replies:            [],
+          type:               "email",
+          gmail_message_id:   msg.id,
+          gmail_thread_id:    msgData.threadId,
         }),
       });
 
-      // Mark as read in Gmail
+      // Mark as read
       await fetch(
         "https://gmail.googleapis.com/gmail/v1/users/me/messages/" + msg.id + "/modify",
         {
@@ -96,7 +122,12 @@ export default async function handler(req, res) {
       imported.push(parsed.subject);
     }
 
-    res.status(200).json({ imported: imported.length, subjects: imported });
+    res.status(200).json({
+      imported: imported.length,
+      skipped: skipped.length,
+      query: gmailQuery,
+      subjects: imported,
+    });
 
   } catch (e) {
     console.error("Gmail sync error:", e);
@@ -118,7 +149,6 @@ async function refreshAccessToken(refreshToken, supabaseUrl, supabaseKey) {
   const data = await r.json();
   if (!r.ok) throw new Error("Token refresh failed: " + data.error);
 
-  // Update stored token
   await fetch(supabaseUrl + "/rest/v1/settings", {
     method: "POST",
     headers: {
@@ -133,7 +163,6 @@ async function refreshAccessToken(refreshToken, supabaseUrl, supabaseKey) {
       gmail_token_expiry: Date.now() + (data.expires_in * 1000),
     }),
   });
-
   return data.access_token;
 }
 
@@ -146,7 +175,6 @@ function parseGmailMessage(msg) {
   const fromEmail = emailMatch ? emailMatch[1] : from.trim();
   const fromName  = from.replace(/<.+?>/, "").replace(/"/g, "").trim() || fromEmail;
 
-  // Extract body text
   let body = "";
   function extractBody(part) {
     if (!part) return;
@@ -157,14 +185,11 @@ function parseGmailMessage(msg) {
     }
   }
   extractBody(msg.payload);
-
-  // Fallback to snippet
   if (!body && msg.snippet) body = msg.snippet;
 
-  // Clean up email reply chains (strip > quoted lines)
   body = body
     .replace(/^>.*$/gm, "")
-    .replace(/^On .+ wrote:$/gm, "")
+    .replace(/^On .+wrote:$/gm, "")
     .replace(/\r\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();

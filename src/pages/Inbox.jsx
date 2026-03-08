@@ -41,14 +41,26 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
     setSyncing(true);
     setSyncResult(null);
     try {
-      const result = await gmailSync();
-      setSyncResult({ ok: true, count: result.imported });
-      if (result.imported > 0 && onRefresh) await onRefresh();
+      const res = await fetch("/api/gmail-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        if (result.noFilters) {
+          setSyncResult({ ok: false, error: "No filters set — go to Settings to add keywords or domains first.", goSettings: true });
+        } else {
+          setSyncResult({ ok: false, error: result.error || "Sync failed" });
+        }
+      } else {
+        setSyncResult({ ok: true, count: result.imported });
+        if (result.imported > 0 && onRefresh) await onRefresh();
+      }
     } catch(e) {
       setSyncResult({ ok: false, error: e.message });
     }
     setSyncing(false);
-    setTimeout(() => setSyncResult(null), 4000);
+    setTimeout(() => setSyncResult(null), 6000);
   }
 
   // Convert-to-ticket state
@@ -258,7 +270,31 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
           ))}
         </div>
 
-        <div style={{ padding: "8px 12px 4px", fontSize: 13, color: "#9CA3AF", fontWeight: 600 }}>
+        {/* Gmail sync bar */}
+        <div style={{ padding: "8px 10px 6px", borderBottom: "1px solid #F3F4F6", display: "flex", alignItems: "center", gap: 6 }}>
+          {gmailStatus?.connected ? (
+            <>
+              <span style={{ width: 7, height: 7, background: "#22C55E", borderRadius: "50%", flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: "#6B7280", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{gmailStatus.email}</span>
+              <button onClick={handleSync} disabled={syncing} style={{ display: "flex", alignItems: "center", gap: 4, background: syncing ? "#F3F4F6" : "#F0EFFE", color: syncing ? "#9CA3AF" : "#6366F1", border: "none", borderRadius: 6, padding: "4px 9px", fontSize: 12, fontWeight: 700, cursor: syncing ? "not-allowed" : "pointer", flexShrink: 0 }}>
+                {syncing ? <><SmallSpinner />&nbsp;Syncing…</> : <>↻ Sync</>}
+              </button>
+            </>
+          ) : (
+            <>
+              <span style={{ width: 7, height: 7, background: "#E5E7EB", borderRadius: "50%", flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: "#9CA3AF", flex: 1 }}>Gmail not connected</span>
+              <button onClick={() => onNavigate("settings")} style={{ background: "none", border: "none", fontSize: 12, color: "#6366F1", fontWeight: 700, cursor: "pointer", padding: 0, flexShrink: 0 }}>Connect →</button>
+            </>
+          )}
+        </div>
+        {syncResult && (
+          <div style={{ margin: "5px 8px 0", padding: "7px 10px", borderRadius: 7, fontSize: 12, fontWeight: 600, background: syncResult.ok ? "#F0FDF4" : "#FEF2F2", color: syncResult.ok ? "#16A34A" : "#DC2626", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+            <span>{syncResult.ok ? (syncResult.count > 0 ? "✓ " + syncResult.count + " new email" + (syncResult.count > 1 ? "s" : "") + " imported" : "✓ Already up to date") : "⚠ " + syncResult.error}</span>
+            {syncResult.goSettings && <button onClick={() => onNavigate("settings")} style={{ background: "none", border: "none", fontSize: 11, fontWeight: 700, color: "#DC2626", cursor: "pointer", textDecoration: "underline", padding: 0, flexShrink: 0 }}>Set up filters →</button>}
+          </div>
+        )}
+        <div style={{ padding: "6px 12px 4px", fontSize: 12, color: "#9CA3AF", fontWeight: 600 }}>
           {filtered.length} email{filtered.length !== 1 ? "s" : ""}
         </div>
 

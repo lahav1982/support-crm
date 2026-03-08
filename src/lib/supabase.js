@@ -117,6 +117,8 @@ export async function saveSettings(ctx) {
       shipping_policy: ctx.shippingPolicy || "",
       tone:            ctx.tone           || "",
       extra_info:      ctx.extraInfo      || "",
+      gmail_filter_keywords: ctx.gmailFilterKeywords || "",
+      gmail_filter_domains:  ctx.gmailFilterDomains  || "",
     }),
   });
 
@@ -156,23 +158,27 @@ export function rowToTicket(row) {
 export function rowToSettings(row) {
   if (!row) return { companyName: "", products: "", refundPolicy: "", shippingPolicy: "", tone: "", extraInfo: "" };
   return {
-    companyName:    row.company_name    || "",
-    products:       row.products        || "",
-    refundPolicy:   row.refund_policy   || "",
-    shippingPolicy: row.shipping_policy || "",
-    tone:           row.tone            || "",
-    extraInfo:      row.extra_info      || "",
+    companyName:          row.company_name          || "",
+    products:             row.products              || "",
+    refundPolicy:         row.refund_policy         || "",
+    shippingPolicy:       row.shipping_policy       || "",
+    tone:                 row.tone                  || "",
+    extraInfo:            row.extra_info            || "",
+    gmailFilterKeywords:  row.gmail_filter_keywords || "",
+    gmailFilterDomains:   row.gmail_filter_domains  || "",
   };
 }
 
 // GMAIL STATUS
 
 export async function fetchGmailStatus() {
-  var rows = await query("settings?id=eq.1&select=gmail_connected,gmail_email");
+  var rows = await query("settings?id=eq.1&select=gmail_connected,gmail_email,gmail_filter_keywords,gmail_filter_domains");
   var row = rows && rows[0] ? rows[0] : {};
   return {
-    connected: row.gmail_connected || false,
-    email:     row.gmail_email     || null,
+    connected:       row.gmail_connected        || false,
+    email:           row.gmail_email            || null,
+    filterKeywords:  row.gmail_filter_keywords  || "",
+    filterDomains:   row.gmail_filter_domains   || "",
   };
 }
 

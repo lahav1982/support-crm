@@ -5,12 +5,14 @@ import Tickets from "./pages/Tickets.jsx";
 import Customers from "./pages/Customers.jsx";
 import Analytics from "./pages/Analytics.jsx";
 import Settings, { buildPrompt } from "./pages/Settings.jsx";
+import Insights from "./pages/Insights.jsx";
 
 const NAV = [
   { id: "inbox",     label: "Inbox",     icon: <InboxIcon /> },
   { id: "tickets",   label: "Tickets",   icon: <TicketIcon /> },
   { id: "customers", label: "Customers", icon: <UsersIcon /> },
   { id: "analytics", label: "Analytics", icon: <ChartIcon /> },
+  { id: "insights",  label: "Insights",  icon: <InsightsIcon /> },
   { id: "settings",  label: "Settings",  icon: <GearIcon /> },
 ];
 
@@ -219,7 +221,7 @@ export default function App() {
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: 16, fontWeight: 800, color: "#0F1117", letterSpacing: "-0.4px" }}>{NAV.find(n => n.id === page)?.label}</span>
             {page === "inbox"   && emailCount  > 0 && <span style={{ background: "#FEF2F2", color: "#EF4444", fontSize: 11, fontWeight: 700, borderRadius: 20, padding: "2px 10px" }}>{emailCount} open</span>}
-            {page === "tickets" && ticketCount > 0 && <span style={{ background: "#EFF6FF", color: "#3B82F6", fontSize: 11, fontWeight: 700, borderRadius: 20, padding: "2px 10px" }}>{ticketCount} active</span>}
+            {page === "tickets"  && ticketCount > 0 && <span style={{ background: "#EFF6FF", color: "#3B82F6", fontSize: 11, fontWeight: 700, borderRadius: 20, padding: "2px 10px" }}>{ticketCount} active</span>}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {page === "inbox" && (
@@ -240,6 +242,7 @@ export default function App() {
           {page === "tickets"   && <Tickets   tickets={tickets} setTickets={setTickets} />}
           {page === "customers" && <Customers tickets={tickets} />}
           {page === "analytics" && <Analytics tickets={tickets} />}
+          {page === "insights"  && <Insights  tickets={tickets} onNavigate={setPage} />}
           {page === "settings"  && <Settings  context={contextForm} onSave={handleSaveContext} gmailStatus={gmailStatus} onDisconnectGmail={handleDisconnectGmail} />}
         </div>
       </div>
@@ -279,6 +282,7 @@ function InboxIcon()  { return <svg width="16" height="16" viewBox="0 0 24 24" f
 function TicketIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2z"/></svg>; }
 function UsersIcon()  { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>; }
 function ChartIcon()  { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>; }
+function InsightsIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>; }
 function GearIcon()   { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>; }
 
 function LoginScreen({ onLogin }) {

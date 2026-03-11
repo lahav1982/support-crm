@@ -116,7 +116,7 @@ export default function Insights({ tickets, onNavigate }) {
             </p>
             {lastRun && (
               <p style={{ fontSize: 12, color: "#9CA3AF", margin: "4px 0 0" }}>
-                Last analyzed: {new Date(lastRun).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                Last analyzed: {new Date(lastRun).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{data?.meta?.source === "cron" ? " · ⏰ auto-synced" : ""}
                 {data?.meta?.analyzedCount && ` · ${data.meta.analyzedCount} messages`}
               </p>
             )}

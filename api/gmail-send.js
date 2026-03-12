@@ -47,8 +47,8 @@ export default async function handler(req, res) {
     const sigHtml = (sigLogo || sigText) ? `
       <br><br>
       <div style="border-top:1px solid #e5e7eb;margin-top:16px;padding-top:14px;color:#374151;font-family:Arial,sans-serif;font-size:14px;line-height:1.7;">
-        ${sigLogo ? `<img src="${sigLogo}" alt="" style="max-height:48px;max-width:200px;object-fit:contain;display:block;margin-bottom:8px;" />` : ""}
         ${sigText ? sigText.replace(/\n/g, "<br>") : ""}
+        ${sigLogo ? `<br><img src="${sigLogo}" alt="" style="max-height:48px;max-width:200px;object-fit:contain;display:block;margin-top:8px;" />` : ""}
       </div>` : "";
 
     const htmlBody = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.7;color:#0f1117;">${bodyHtml}${sigHtml}</div>`;

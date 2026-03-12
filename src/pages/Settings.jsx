@@ -224,21 +224,50 @@ export default function Settings({ context, onSave, gmailStatus, onDisconnectGma
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div>
-              <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>Logo URL</label>
-              <input
-                value={form.signatureLogoUrl || ""}
-                onChange={e => { handleChange("signatureLogoUrl", e.target.value); setLogoPreview(e.target.value); }}
-                placeholder="https://yoursite.com/logo.png"
-                style={{ width: "100%", background: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 9, color: "#0F1117", padding: "10px 12px", fontSize: 15, outline: "none", fontFamily: "inherit" }}
-                onFocus={e => { e.target.style.borderColor = "#6366F1"; e.target.style.background = "#fff"; }}
-                onBlur={e => { e.target.style.borderColor = "#E5E7EB"; e.target.style.background = "#F9FAFB"; }}
+              <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>Logo</label>
+              <div
+                onClick={() => document.getElementById("logo-upload").click()}
+                onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = "#6366F1"; e.currentTarget.style.background = "#F5F3FF"; }}
+                onDragLeave={e => { e.currentTarget.style.borderColor = "#E5E7EB"; e.currentTarget.style.background = "#F9FAFB"; }}
+                onDrop={e => {
+                  e.preventDefault();
+                  e.currentTarget.style.borderColor = "#E5E7EB";
+                  e.currentTarget.style.background = "#F9FAFB";
+                  const file = e.dataTransfer.files[0];
+                  if (file && file.type.startsWith("image/")) {
+                    const reader = new FileReader();
+                    reader.onload = ev => { handleChange("signatureLogoUrl", ev.target.result); setLogoPreview(ev.target.result); };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+                style={{ width: "100%", background: "#F9FAFB", border: "1.5px dashed #E5E7EB", borderRadius: 9, padding: "18px 12px", cursor: "pointer", textAlign: "center", transition: "all 0.15s" }}
+              >
+                {logoPreview ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 14, justifyContent: "center" }}>
+                    <img src={logoPreview} alt="Logo" style={{ maxHeight: 48, maxWidth: 180, objectFit: "contain" }} onError={e => e.target.style.display="none"} />
+                    <button onClick={e => { e.stopPropagation(); handleChange("signatureLogoUrl", ""); setLogoPreview(""); }}
+                      style={{ background: "#FEF2F2", color: "#DC2626", border: "1px solid #FECACA", borderRadius: 6, padding: "4px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: 24, marginBottom: 6 }}>🖼️</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "#374151" }}>Click or drag & drop your logo</div>
+                    <div style={{ fontSize: 12, color: "#9CA3AF", marginTop: 3 }}>PNG, JPG, SVG — max 1MB</div>
+                  </div>
+                )}
+              </div>
+              <input id="logo-upload" type="file" accept="image/*" style={{ display: "none" }}
+                onChange={e => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  if (file.size > 1024 * 1024) { alert("Image must be under 1MB"); return; }
+                  const reader = new FileReader();
+                  reader.onload = ev => { handleChange("signatureLogoUrl", ev.target.result); setLogoPreview(ev.target.result); };
+                  reader.readAsDataURL(file);
+                }}
               />
-              {logoPreview && (
-                <div style={{ marginTop: 8 }}>
-                  <img src={logoPreview} alt="Logo preview" style={{ maxHeight: 48, maxWidth: 200, objectFit: "contain", border: "1px solid #E5E7EB", borderRadius: 6, padding: 4 }}
-                    onError={e => { e.target.style.display = "none"; }} />
-                </div>
-              )}
             </div>
             <div>
               <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>Signature Text</label>
@@ -256,12 +285,12 @@ export default function Settings({ context, onSave, gmailStatus, onDisconnectGma
               <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 8, padding: "14px 16px" }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Preview</div>
                 <div style={{ borderTop: "1px solid #E5E7EB", paddingTop: 10 }}>
-                  {form.signatureLogoUrl?.trim() && (
-                    <img src={form.signatureLogoUrl} alt="Logo" style={{ maxHeight: 40, maxWidth: 160, objectFit: "contain", display: "block", marginBottom: 8 }}
-                      onError={e => { e.target.style.display = "none"; }} />
-                  )}
                   {form.signatureText?.trim() && (
                     <div style={{ fontSize: 14, color: "#374151", whiteSpace: "pre-line", lineHeight: 1.7 }}>{form.signatureText}</div>
+                  )}
+                  {form.signatureLogoUrl?.trim() && (
+                    <img src={form.signatureLogoUrl} alt="Logo" style={{ maxHeight: 40, maxWidth: 160, objectFit: "contain", display: "block", marginTop: 8 }}
+                      onError={e => { e.target.style.display = "none"; }} />
                   )}
                 </div>
               </div>

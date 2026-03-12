@@ -95,8 +95,10 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
   const [converting, setConverting] = useState(false);
   const [convertError, setConvertError] = useState(null);
 
-  // Only show emails in inbox (not tickets)
-  const emails = tickets.filter(t => t.type !== "ticket");
+  // Only show emails in inbox (not tickets), newest first
+  const emails = tickets
+    .filter(t => t.type !== "ticket")
+    .sort((a, b) => b.timestamp - a.timestamp);
   const filtered = emails.filter(t =>
     tab === "all" ? true : t.status === tab
   );

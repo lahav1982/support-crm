@@ -265,8 +265,8 @@ function parseGmailMessage(msg) {
   const get = name => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || "";
   const from = get("From");
   const emailMatch = from.match(/<(.+?)>/);
-  const fromEmail = emailMatch ? emailMatch[1] : from.trim();
-  const fromName  = from.replace(/<.+?>/, "").replace(/"/g, "").trim() || fromEmail;
+  let fromEmail = emailMatch ? emailMatch[1] : from.trim();
+  let fromName  = from.replace(/<.+?>/, "").replace(/"/g, "").trim() || fromEmail;
 
   let body = "";
   function extractBody(part) {
@@ -279,6 +279,27 @@ function parseGmailMessage(msg) {
   if (!body && msg.snippet) body = msg.snippet;
 
   body = body.replace(/^>.*$/gm, "").replace(/^On .+wrote:$/gm, "").replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+
+  // ── Shopify contact form parser ───────────────────────────────────────────
+  // Shopify sends contact forms as raw key/value text with translation keys.
+  // Extract the real sender name, email, and message and rewrite cleanly.
+  if (body.includes("Translation Missing") || body.includes("contact form")) {
+    // Extract customer name
+    const nameMatch = body.match(/(?:Translation Missing:[^:]+name|name)[:\s]+([^\n]+)/i);
+    const bodyMatch = body.match(/(?:Translation Missing:[^:]+body|message|body)[:\s]+([\s\S]+?)(?:Country Code:|$)/i);
+    const emailMatch2 = body.match(/Email[:\s]+([^\s\n]+@[^\s\n]+)/i);
+
+    const extractedName  = nameMatch?.[1]?.trim();
+    const extractedEmail = emailMatch2?.[1]?.trim();
+    const extractedBody  = bodyMatch?.[1]?.trim();
+
+    if (extractedBody) {
+      body = extractedBody;
+      // Override sender info if we extracted better data from the form
+      if (extractedName)  fromName  = extractedName;
+      if (extractedEmail) fromEmail = extractedEmail;
+    }
+  }
   // internalDate is ms since epoch — the actual time the email was sent/received
   const sentAt = msg.internalDate
     ? new Date(parseInt(msg.internalDate)).toISOString()

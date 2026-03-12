@@ -288,8 +288,8 @@ function parseGmailMessage(msg) {
   const get     = name => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || "";
   const from    = get("From");
   const m       = from.match(/<(.+?)>/);
-  const fromEmail = m ? m[1] : from.trim();
-  const fromName  = from.replace(/<.+?>/, "").replace(/"/g, "").trim() || fromEmail;
+  let fromEmail = m ? m[1] : from.trim();
+  let fromName  = from.replace(/<.+?>/, "").replace(/"/g, "").trim() || fromEmail;
   let body = "";
   function extract(part) {
     if (!part) return;
@@ -299,6 +299,22 @@ function parseGmailMessage(msg) {
   extract(msg.payload);
   if (!body && msg.snippet) body = msg.snippet;
   body = body.replace(/^>.*$/gm,"").replace(/\r\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();
+
+  // Shopify contact form parser
+  if (body.includes("Translation Missing") || body.includes("contact form")) {
+    const nameMatch  = body.match(/(?:Translation Missing:[^:]+name|name)[:\s]+([^\n]+)/i);
+    const bodyMatch  = body.match(/(?:Translation Missing:[^:]+body|message|body)[:\s]+([\s\S]+?)(?:Country Code:|$)/i);
+    const emailMatch2 = body.match(/Email[:\s]+([^\s\n]+@[^\s\n]+)/i);
+    const extractedName  = nameMatch?.[1]?.trim();
+    const extractedEmail = emailMatch2?.[1]?.trim();
+    const extractedBody  = bodyMatch?.[1]?.trim();
+    if (extractedBody) {
+      body = extractedBody;
+      if (extractedName)  fromName  = extractedName;
+      if (extractedEmail) fromEmail = extractedEmail;
+    }
+  }
+
   const sentAt = msg.internalDate
     ? new Date(parseInt(msg.internalDate)).toISOString()
     : new Date().toISOString();

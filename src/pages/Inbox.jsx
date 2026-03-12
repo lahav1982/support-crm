@@ -3,11 +3,11 @@ import { TAG_COLORS, PRIORITY_COLORS, TEAM } from "../lib/data.js";
 import { generateReply } from "../lib/claude.js";
 import { updateTicket, createTicket, rowToTicket, deleteTickets } from "../lib/supabase.js";
 
-async function gmailSend({ to, subject, body, threadId, messageId }) {
+async function gmailSend({ to, subject, body, threadId, messageId, senderName }) {
   const res = await fetch("/api/gmail-send", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ to, subject, body, threadId, messageId }),
+    body: JSON.stringify({ to, subject, body, threadId, messageId, senderName }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Gmail send failed");
@@ -24,7 +24,7 @@ async function gmailSync() {
   return data;
 }
 
-export default function Inbox({ tickets, setTickets, businessContext, onNavigate, gmailStatus, onRefresh }) {
+export default function Inbox({ tickets, setTickets, businessContext, onNavigate, gmailStatus, onRefresh, senderName }) {
   const [tab, setTab] = useState("open");
   const [selected, setSelected] = useState(
     () => tickets.filter(t => t.type !== "ticket")[0] || null
@@ -130,11 +130,12 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
     if (gmailStatus?.connected && selected.gmailThreadId) {
       try {
         await gmailSend({
-          to:        selected.customerEmail,
-          subject:   selected.subject,
-          body:      draft,
-          threadId:  selected.gmailThreadId,
-          messageId: selected.gmailMessageId,
+          to:         selected.customerEmail,
+          subject:    selected.subject,
+          body:       draft,
+          threadId:   selected.gmailThreadId,
+          messageId:  selected.gmailMessageId,
+          senderName: senderName,
         });
       } catch(e) {
         console.warn("Gmail send failed, saving locally only:", e.message);
@@ -159,11 +160,12 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
     if (gmailStatus?.connected && selected.gmailThreadId) {
       try {
         await gmailSend({
-          to:        selected.customerEmail,
-          subject:   selected.subject,
-          body:      draft,
-          threadId:  selected.gmailThreadId,
-          messageId: selected.gmailMessageId,
+          to:         selected.customerEmail,
+          subject:    selected.subject,
+          body:       draft,
+          threadId:   selected.gmailThreadId,
+          messageId:  selected.gmailMessageId,
+          senderName: senderName,
         });
       } catch(e) {
         console.warn("Gmail send failed, saving locally only:", e.message);

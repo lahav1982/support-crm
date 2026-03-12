@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   if (!requireAuth(req, res)) return;
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { to, subject, body, threadId, messageId } = req.body;
+  const { to, subject, body, threadId, messageId, senderName: reqSenderName } = req.body;
   if (!to || !body) return res.status(400).json({ error: "Missing to or body" });
 
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -34,11 +34,10 @@ export default async function handler(req, res) {
 
     // 3. Build RFC 2822 email
     const replySubject = subject.startsWith("Re:") ? subject : "Re: " + subject;
-    const senderName  = s.company_name || "Support";
+    const senderName  = reqSenderName || s.company_name || "Support";
     const senderEmail = s.gmail_email  || "";
-    const fromHeader  = senderEmail
-      ? "From: " + senderName + " <" + senderEmail + ">"
-      : "From: " + senderName;
+    const fromHeader  = "From: " + senderName + " <" + senderEmail + ">";
+    console.log("[gmail-send] From header:", fromHeader);
 
     const emailLines = [
       fromHeader,

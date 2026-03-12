@@ -1,14 +1,20 @@
 // api/cron-job.js
-// Called by Vercel Cron at 6am and 6pm EST (11:00 and 23:00 UTC)
-// Vercel automatically sends the Authorization header with CRON_SECRET
+// Called by Vercel Cron once daily at 11:00 UTC (6am EST)
+// Vercel sends GET requests with Authorization: Bearer <CRON_SECRET>
+// Hobby plan: 1 cron max per project. Pro plan: multiple crons allowed.
 
 export default async function handler(req, res) {
-  // Verify this is coming from Vercel's cron system, not a random request
+  // Vercel cron sends GET; also accept POST for manual triggering
+  if (req.method !== "GET" && req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // Verify auth — Vercel sends CRON_SECRET as Bearer token automatically
   const authHeader = req.headers["authorization"];
   const cronSecret = process.env.CRON_SECRET;
 
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    console.error("Cron: unauthorized attempt");
+    console.error("Cron: unauthorized attempt from", req.headers["x-forwarded-for"] || "unknown");
     return res.status(401).json({ error: "Unauthorized" });
   }
 

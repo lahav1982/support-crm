@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const FIELDS = [
   { key: "companyName",    label: "Company Name",        icon: "🏢", placeholder: "e.g. Acme Store",                             hint: "Used to sign off replies professionally." },
@@ -10,8 +10,14 @@ const FIELDS = [
 ];
 
 export default function Settings({ context, onSave, gmailStatus, onDisconnectGmail }) {
-  const [form, setForm] = useState(context);
+  const [form, setForm] = useState(context || {});
   const [saved, setSaved] = useState(false);
+  const [logoPreview, setLogoPreview] = useState(context?.signatureLogoUrl || "");
+
+  useEffect(() => {
+    setForm(context || {});
+    setLogoPreview(context?.signatureLogoUrl || "");
+  }, [context]);
 
   function handleChange(key, value) {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -24,8 +30,8 @@ export default function Settings({ context, onSave, gmailStatus, onDisconnectGma
     setTimeout(() => setSaved(false), 3000);
   }
 
-  const hasContent = Object.values(form).some(v => v.trim());
-  const filledCount = Object.values(form).filter(v => v.trim()).length;
+  const hasContent = FIELDS.some(f => form[f.key]?.trim());
+  const filledCount = FIELDS.filter(f => form[f.key]?.trim()).length;
 
   return (
     <div style={{ overflowY: "auto", height: "100%", background: "#F5F6FA", fontFamily: "inherit" }}>

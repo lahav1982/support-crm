@@ -42,12 +42,14 @@ export default async function handler(req, res) {
       throw new Error("Token exchange failed: " + (tokens.error_description || tokens.error || JSON.stringify(tokens)));
     }
 
-    // 2. Get Gmail address from Google
-    const profileRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+    // 2. Get Gmail address from Gmail's own sendAs list (more reliable than userinfo)
+    const sendAsRes = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs", {
       headers: { Authorization: "Bearer " + tokens.access_token },
     });
-    const profile = await profileRes.json();
-    const email = profile.email || "unknown@gmail.com";
+    const sendAsData = await sendAsRes.json();
+    const primaryAlias = sendAsData?.sendAs?.find(a => a.isPrimary) || sendAsData?.sendAs?.[0];
+    const email = primaryAlias?.sendAsEmail || "";
+    if (!email) throw new Error("Could not determine Gmail address from Google API");
 
     // 3. Save tokens to Supabase settings row (id=1)
     const saveRes = await fetch(supabaseUrl + "/rest/v1/settings", {

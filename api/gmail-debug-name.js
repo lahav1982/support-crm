@@ -64,8 +64,28 @@ export default async function handler(req, res) {
       const nameToSet = displayName || s.company_name;
       if (!nameToSet?.trim()) return res.status(400).json({ error: "No displayName provided and no company_name in DB" });
 
+      // Get the real email from Google (DB may have "unknown@gmail.com")
+      const listRes2 = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs",
+        { headers: { "Authorization": "Bearer " + accessToken } });
+      const listData2 = await listRes2.json();
+      const realAlias = listData2?.sendAs?.find(a => a.isPrimary) || listData2?.sendAs?.[0];
+      const realEmail = realAlias?.sendAsEmail;
+      if (!realEmail) return res.status(500).json({ error: "Could not determine Gmail address" });
+
+      // Also fix the DB email while we are here
+      await fetch(supabaseUrl + "/rest/v1/settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": supabaseKey,
+          "Authorization": "Bearer " + supabaseKey,
+          "Prefer": "resolution=merge-duplicates",
+        },
+        body: JSON.stringify({ id: 1, gmail_email: realEmail }),
+      });
+
       const patchRes = await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs/${encodeURIComponent(email)}`,
+        "https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs/" + encodeURIComponent(realEmail),
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + accessToken },
@@ -75,7 +95,8 @@ export default async function handler(req, res) {
       const patchData = await patchRes.json();
       return res.status(patchRes.status).json({
         attempted_name: nameToSet.trim(),
-        gmail_email: email,
+        real_email_used: realEmail,
+        db_email_fixed: realEmail,
         patch_status: patchRes.status,
         google_response: patchData,
       });

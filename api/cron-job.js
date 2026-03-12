@@ -177,6 +177,7 @@ async function runGmailSync(supabaseUrl, supabaseKey, anthropicKey) {
         priority: triage.priority || "medium", tag: triage.tag || "General",
         assigned_to: 1, notes: "", replies: [], type: "email",
         gmail_message_id: msg.id, gmail_thread_id: threadId,
+        created_at: parsed.sentAt,
       }),
     });
 
@@ -298,5 +299,8 @@ function parseGmailMessage(msg) {
   extract(msg.payload);
   if (!body && msg.snippet) body = msg.snippet;
   body = body.replace(/^>.*$/gm,"").replace(/\r\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();
-  return { fromEmail, fromName, subject: get("Subject") || "(no subject)", body: body || msg.snippet || "(empty)" };
+  const sentAt = msg.internalDate
+    ? new Date(parseInt(msg.internalDate)).toISOString()
+    : new Date().toISOString();
+  return { fromEmail, fromName, subject: get("Subject") || "(no subject)", body: body || msg.snippet || "(empty)", sentAt };
 }

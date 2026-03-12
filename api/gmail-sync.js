@@ -187,6 +187,7 @@ export default async function handler(req, res) {
           type:             "email",
           gmail_message_id: msg.id,
           gmail_thread_id:  threadId,
+          created_at:       parsed.sentAt,
         }),
       });
 
@@ -278,5 +279,10 @@ function parseGmailMessage(msg) {
   if (!body && msg.snippet) body = msg.snippet;
 
   body = body.replace(/^>.*$/gm, "").replace(/^On .+wrote:$/gm, "").replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
-  return { fromEmail, fromName, subject: get("Subject") || "(no subject)", body: body || msg.snippet || "(empty)" };
+  // internalDate is ms since epoch — the actual time the email was sent/received
+  const sentAt = msg.internalDate
+    ? new Date(parseInt(msg.internalDate)).toISOString()
+    : new Date().toISOString();
+
+  return { fromEmail, fromName, subject: get("Subject") || "(no subject)", body: body || msg.snippet || "(empty)", sentAt };
 }

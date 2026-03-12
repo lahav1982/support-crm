@@ -31,7 +31,7 @@ async function query(path, options) {
 // TICKETS
 
 export async function fetchTickets() {
-  return query("tickets?order=created_at.desc&select=*");
+  return query("tickets?order=created_at.desc,id.desc&select=*");
 }
 
 export async function createTicket(ticket) {

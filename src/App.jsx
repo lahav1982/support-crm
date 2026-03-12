@@ -117,6 +117,21 @@ export default function App() {
     await saveSettings(form);
     setSavedContext({ ...form });
     setContextForm({ ...form });
+
+    // If Gmail is connected and company name is set, push the display name
+    // to Gmail via sendAs.patch — this is the only way Gmail respects it
+    if (gmailStatus?.connected && form.companyName?.trim()) {
+      try {
+        await fetch("/api/gmail-update-name", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ displayName: form.companyName.trim() }),
+        });
+      } catch (e) {
+        console.warn("Could not update Gmail display name:", e);
+      }
+    }
   }
 
   if (loading) return <LoadingScreen />;

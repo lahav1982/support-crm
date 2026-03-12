@@ -73,6 +73,28 @@ export default async function handler(req, res) {
       throw new Error("Supabase save failed: " + errText);
     }
 
+    // 4. Read company_name from settings and push it to Gmail sendAs immediately
+    try {
+      const settingsRes2 = await fetch(supabaseUrl + "/rest/v1/settings?id=eq.1&select=company_name", {
+        headers: { "apikey": supabaseKey, "Authorization": "Bearer " + supabaseKey },
+      });
+      const settingsData = await settingsRes2.json();
+      const companyName = settingsData?.[0]?.company_name;
+      if (companyName && companyName.trim()) {
+        await fetch(
+          "https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs/" + encodeURIComponent(email),
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tokens.access_token },
+            body: JSON.stringify({ displayName: companyName.trim() }),
+          }
+        );
+        console.log("Gmail display name set to:", companyName);
+      }
+    } catch (nameErr) {
+      console.warn("Could not set Gmail display name:", nameErr.message);
+    }
+
     console.log("Gmail connected successfully for:", email);
     res.redirect("/?gmail_connected=1");
 

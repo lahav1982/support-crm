@@ -207,6 +207,62 @@ export default function Settings({ context, onSave, gmailStatus, onDisconnectGma
           ))}
         </div>
 
+        {/* Signature */}
+        <div style={{ marginTop: 14, background: "#fff", border: "1px solid #EAECF0", borderRadius: 12, padding: "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 17 }}>✍️</span>
+            <label style={{ fontSize: 15, fontWeight: 700, color: "#0F1117" }}>Email Signature</label>
+            {(form.signatureText?.trim() || form.signatureLogoUrl?.trim()) && <span style={{ marginLeft: "auto", width: 7, height: 7, background: "#22C55E", borderRadius: "50%", display: "inline-block" }} />}
+          </div>
+          <p style={{ margin: "0 0 12px 23px", fontSize: 13.5, color: "#9CA3AF" }}>Appended to every reply sent from the CRM.</p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>Logo URL</label>
+              <input
+                value={form.signatureLogoUrl || ""}
+                onChange={e => { handleChange("signatureLogoUrl", e.target.value); setLogoPreview(e.target.value); }}
+                placeholder="https://yoursite.com/logo.png"
+                style={{ width: "100%", background: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 9, color: "#0F1117", padding: "10px 12px", fontSize: 15, outline: "none", fontFamily: "inherit" }}
+                onFocus={e => { e.target.style.borderColor = "#6366F1"; e.target.style.background = "#fff"; }}
+                onBlur={e => { e.target.style.borderColor = "#E5E7EB"; e.target.style.background = "#F9FAFB"; }}
+              />
+              {logoPreview && (
+                <div style={{ marginTop: 8 }}>
+                  <img src={logoPreview} alt="Logo preview" style={{ maxHeight: 48, maxWidth: 200, objectFit: "contain", border: "1px solid #E5E7EB", borderRadius: 6, padding: 4 }}
+                    onError={e => { e.target.style.display = "none"; }} />
+                </div>
+              )}
+            </div>
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>Signature Text</label>
+              <textarea
+                value={form.signatureText || ""}
+                onChange={e => handleChange("signatureText", e.target.value)}
+                placeholder={"Thanks,\nThe Rootless Plants Team\nwww.rootlessplants.com"}
+                rows={3}
+                style={{ width: "100%", background: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 9, color: "#0F1117", padding: "10px 12px", fontSize: 15, outline: "none", fontFamily: "inherit", lineHeight: 1.6, resize: "vertical" }}
+                onFocus={e => { e.target.style.borderColor = "#6366F1"; e.target.style.background = "#fff"; }}
+                onBlur={e => { e.target.style.borderColor = "#E5E7EB"; e.target.style.background = "#F9FAFB"; }}
+              />
+            </div>
+            {(form.signatureText?.trim() || form.signatureLogoUrl?.trim()) && (
+              <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 8, padding: "14px 16px" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Preview</div>
+                <div style={{ borderTop: "1px solid #E5E7EB", paddingTop: 10 }}>
+                  {form.signatureLogoUrl?.trim() && (
+                    <img src={form.signatureLogoUrl} alt="Logo" style={{ maxHeight: 40, maxWidth: 160, objectFit: "contain", display: "block", marginBottom: 8 }}
+                      onError={e => { e.target.style.display = "none"; }} />
+                  )}
+                  {form.signatureText?.trim() && (
+                    <div style={{ fontSize: 14, color: "#374151", whiteSpace: "pre-line", lineHeight: 1.7 }}>{form.signatureText}</div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Save */}
         <div style={{ marginTop: 24, display: "flex", alignItems: "center", gap: 14 }}>
           <button onClick={handleSave}

@@ -3,11 +3,11 @@ import { TAG_COLORS, PRIORITY_COLORS, TEAM } from "../lib/data.js";
 import { generateReply } from "../lib/claude.js";
 import { updateTicket, createTicket, rowToTicket, deleteTickets } from "../lib/supabase.js";
 
-async function gmailSend({ to, subject, body, threadId, messageId, senderName }) {
+async function gmailSend({ to, subject, body, threadId, messageId, senderName, signatureText, signatureLogoUrl }) {
   const res = await fetch("/api/gmail-send", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ to, subject, body, threadId, messageId, senderName }),
+    body: JSON.stringify({ to, subject, body, threadId, messageId, senderName, signatureText, signatureLogoUrl }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Gmail send failed");
@@ -24,7 +24,7 @@ async function gmailSync() {
   return data;
 }
 
-export default function Inbox({ tickets, setTickets, businessContext, onNavigate, gmailStatus, onRefresh, senderName }) {
+export default function Inbox({ tickets, setTickets, businessContext, onNavigate, gmailStatus, onRefresh, senderName, signatureText, signatureLogoUrl }) {
   const [tab, setTab] = useState("open");
   const [selected, setSelected] = useState(
     () => tickets.filter(t => t.type !== "ticket")[0] || null
@@ -136,6 +136,8 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
           threadId:   selected.gmailThreadId,
           messageId:  selected.gmailMessageId,
           senderName: senderName,
+          signatureText: signatureText,
+          signatureLogoUrl: signatureLogoUrl,
         });
       } catch(e) {
         console.warn("Gmail send failed, saving locally only:", e.message);
@@ -166,6 +168,8 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
           threadId:   selected.gmailThreadId,
           messageId:  selected.gmailMessageId,
           senderName: senderName,
+          signatureText: signatureText,
+          signatureLogoUrl: signatureLogoUrl,
         });
       } catch(e) {
         console.warn("Gmail send failed, saving locally only:", e.message);

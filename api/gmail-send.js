@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   if (!requireAuth(req, res)) return;
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { to, subject, body, threadId, messageId, senderName: reqSenderName } = req.body;
+  const { to, subject, body, threadId, messageId, senderName: reqSenderName, signatureText, signatureLogoUrl } = req.body;
   if (!to || !body) return res.status(400).json({ error: "Missing to or body" });
 
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -37,17 +37,31 @@ export default async function handler(req, res) {
     const senderName  = reqSenderName || s.company_name || "Support";
     const senderEmail = s.gmail_email  || "";
     const fromHeader  = "From: " + senderName + " <" + senderEmail + ">";
-    console.log("[gmail-send] From header:", fromHeader);
+
+    // Use signature from request, fall back to saved settings
+    const sigText = signatureText ?? s.signature_text ?? "";
+    const sigLogo = signatureLogoUrl ?? s.signature_logo_url ?? "";
+
+    // Build HTML body with signature
+    const bodyHtml = body.replace(/\n/g, "<br>");
+    const sigHtml = (sigLogo || sigText) ? `
+      <br><br>
+      <div style="border-top:1px solid #e5e7eb;margin-top:16px;padding-top:14px;color:#374151;font-family:Arial,sans-serif;font-size:14px;line-height:1.7;">
+        ${sigLogo ? `<img src="${sigLogo}" alt="" style="max-height:48px;max-width:200px;object-fit:contain;display:block;margin-bottom:8px;" />` : ""}
+        ${sigText ? sigText.replace(/\n/g, "<br>") : ""}
+      </div>` : "";
+
+    const htmlBody = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.7;color:#0f1117;">${bodyHtml}${sigHtml}</div>`;
 
     const emailLines = [
       fromHeader,
       "To: " + to,
       "Subject: " + replySubject,
-      "Content-Type: text/plain; charset=utf-8",
       "MIME-Version: 1.0",
+      "Content-Type: text/html; charset=utf-8",
     ];
     if (threadId) emailLines.push("In-Reply-To: " + (messageId || ""));
-    emailLines.push("", body);
+    emailLines.push("", htmlBody);
 
     const raw = Buffer.from(emailLines.join("\r\n"))
       .toString("base64")

@@ -253,7 +253,7 @@ export default function App() {
 
         {/* Page content */}
         <div style={{ flex: 1, overflow: "hidden", animation: "fadeIn 0.2s ease" }}>
-          {page === "inbox"     && <Inbox     tickets={tickets} setTickets={setTickets} businessContext={businessContextPrompt} onNavigate={setPage} gmailStatus={gmailStatus} onRefresh={handleRefreshTickets} senderName={savedContext.companyName} />}
+          {page === "inbox"     && <Inbox     tickets={tickets} setTickets={setTickets} businessContext={businessContextPrompt} onNavigate={setPage} gmailStatus={gmailStatus} onRefresh={handleRefreshTickets} senderName={savedContext.companyName} signatureText={savedContext.signatureText} signatureLogoUrl={savedContext.signatureLogoUrl} />}
           {page === "tickets"   && <Tickets   tickets={tickets} setTickets={setTickets} />}
           {page === "customers" && <Customers tickets={tickets} />}
           {page === "analytics" && <Analytics tickets={tickets} />}

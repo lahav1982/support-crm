@@ -117,8 +117,10 @@ export async function saveSettings(ctx) {
       shipping_policy: ctx.shippingPolicy || "",
       tone:            ctx.tone           || "",
       extra_info:      ctx.extraInfo      || "",
-      gmail_filter_keywords: ctx.gmailFilterKeywords || "",
-      gmail_filter_domains:  ctx.gmailFilterDomains  || "",
+      gmail_filter_keywords:  ctx.gmailFilterKeywords  || "",
+      gmail_filter_domains:   ctx.gmailFilterDomains   || "",
+      signature_text:         ctx.signatureText        || "",
+      signature_logo_url:     ctx.signatureLogoUrl     || "",
     }),
   });
 
@@ -164,6 +166,8 @@ export function rowToSettings(row) {
     shippingPolicy:       row.shipping_policy       || "",
     tone:                 row.tone                  || "",
     extraInfo:            row.extra_info            || "",
+    signatureText:        row.signature_text        || "",
+    signatureLogoUrl:     row.signature_logo_url    || "",
     gmailFilterKeywords:  row.gmail_filter_keywords || "",
     gmailFilterDomains:   row.gmail_filter_domains  || "",
   };

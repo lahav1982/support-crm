@@ -34,7 +34,14 @@ export default async function handler(req, res) {
 
     // 3. Build RFC 2822 email
     const replySubject = subject.startsWith("Re:") ? subject : "Re: " + subject;
+    const senderName  = s.company_name || "Support";
+    const senderEmail = s.gmail_email  || "";
+    const fromHeader  = senderEmail
+      ? "From: " + senderName + " <" + senderEmail + ">"
+      : "From: " + senderName;
+
     const emailLines = [
+      fromHeader,
       "To: " + to,
       "Subject: " + replySubject,
       "Content-Type: text/plain; charset=utf-8",

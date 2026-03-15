@@ -85,13 +85,23 @@ async function runGmailSync(supabaseUrl, supabaseKey, anthropicKey) {
     accessToken = await refreshAccessToken(s.gmail_refresh_token, supabaseUrl, supabaseKey);
   }
 
-  const existingRes = await fetch(
-    supabaseUrl + "/rest/v1/tickets?select=id,gmail_message_id,gmail_thread_id,replies,status&gmail_message_id=not.is.null",
-    { headers: { "apikey": supabaseKey, "Authorization": "Bearer " + supabaseKey } }
-  );
-  const existingRows = await existingRes.json() || [];
+  const [existingRes, existingOppsRes] = await Promise.all([
+    fetch(
+      supabaseUrl + "/rest/v1/tickets?select=id,gmail_message_id,gmail_thread_id,replies,status&gmail_message_id=not.is.null",
+      { headers: { "apikey": supabaseKey, "Authorization": "Bearer " + supabaseKey } }
+    ),
+    fetch(
+      supabaseUrl + "/rest/v1/opportunities?select=gmail_message_id&gmail_message_id=not.is.null",
+      { headers: { "apikey": supabaseKey, "Authorization": "Bearer " + supabaseKey } }
+    ),
+  ]);
+  const existingRows    = await existingRes.json()     || [];
+  const existingOppRows = await existingOppsRes.json() || [];
 
   const importedMessageIds = new Set(existingRows.map(r => r.gmail_message_id));
+  for (const row of existingOppRows) {
+    if (row.gmail_message_id) importedMessageIds.add(row.gmail_message_id);
+  }
   for (const row of existingRows) {
     for (const reply of (row.replies || [])) {
       if (reply.id) importedMessageIds.add(reply.id);

@@ -29,15 +29,26 @@ export default async function handler(req, res) {
       accessToken = await refreshAccessToken(s.gmail_refresh_token, supabaseUrl, supabaseKey);
     }
 
-    // ── 3. Load all known tickets with Gmail data ───────────────────────────
-    const existingRes = await fetch(
-      supabaseUrl + "/rest/v1/tickets?select=id,gmail_message_id,gmail_thread_id,replies,status&gmail_message_id=not.is.null",
-      { headers: { "apikey": supabaseKey, "Authorization": "Bearer " + supabaseKey } }
-    );
-    const existingRows = await existingRes.json() || [];
+    // ── 3. Load all known tickets AND opportunities with Gmail data ──────────
+    const [existingRes, existingOppsRes] = await Promise.all([
+      fetch(
+        supabaseUrl + "/rest/v1/tickets?select=id,gmail_message_id,gmail_thread_id,replies,status&gmail_message_id=not.is.null",
+        { headers: { "apikey": supabaseKey, "Authorization": "Bearer " + supabaseKey } }
+      ),
+      fetch(
+        supabaseUrl + "/rest/v1/opportunities?select=gmail_message_id&gmail_message_id=not.is.null",
+        { headers: { "apikey": supabaseKey, "Authorization": "Bearer " + supabaseKey } }
+      ),
+    ]);
+    const existingRows    = await existingRes.json()     || [];
+    const existingOppRows = await existingOppsRes.json() || [];
 
-    // Track all message IDs already in DB (to avoid duplicates)
+    // Track all message IDs already in DB (tickets + opportunities) to avoid duplicates
     const importedMessageIds = new Set(existingRows.map(r => r.gmail_message_id));
+    // Add opportunity message IDs
+    for (const row of existingOppRows) {
+      if (row.gmail_message_id) importedMessageIds.add(row.gmail_message_id);
+    }
     // Also collect all reply message IDs that were appended to tickets
     for (const row of existingRows) {
       for (const reply of (row.replies || [])) {

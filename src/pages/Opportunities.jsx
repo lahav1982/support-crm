@@ -17,11 +17,45 @@ export default function Opportunities({ opportunities, setOpportunities }) {
   const [search, setSearch]       = useState("");
   const [showAdd, setShowAdd]     = useState(false);
   const [saving, setSaving]       = useState(false);
-  const [syncing, setSyncing]     = useState(false);
-  const [syncResult, setSyncResult] = useState(null);
+  const [syncing, setSyncing]       = useState(false);
+  const [syncResult, setSyncResult]   = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [deleting, setDeleting]       = useState(false);
   const [newForm, setNewForm]     = useState({ customerName: "", message: "", notes: "", estimatedValue: "Unknown", stage: "new" });
 
   const ops = opportunities || [];
+
+  async function handleBulkDelete() {
+    if (!selectedIds.size) return;
+    if (!confirm(`Delete ${selectedIds.size} opportunit${selectedIds.size === 1 ? "y" : "ies"}? This cannot be undone.`)) return;
+    setDeleting(true);
+    const ids = [...selectedIds];
+    await Promise.all(ids.map(id =>
+      fetch("/api/opportunities", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ id }),
+      })
+    ));
+    setOpportunities(prev => prev.filter(o => !selectedIds.has(o.id)));
+    if (selectedIds.has(selected?.id)) setSelected(null);
+    setSelectedIds(new Set());
+    setDeleting(false);
+  }
+
+  function toggleSelect(id, e) {
+    e.stopPropagation();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds(prev => prev.size === filtered.length ? new Set() : new Set(filtered.map(o => o.id)));
+  }
 
   async function handleSync() {
     setSyncing(true);
@@ -178,7 +212,25 @@ export default function Opportunities({ opportunities, setOpportunities }) {
         </div>
 
         {/* List */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "6px 8px" }}>
+        {selectedIds.size > 0 && (
+          <div style={{ margin: "6px 8px 0", padding: "8px 12px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#DC2626", flex: 1 }}>{selectedIds.size} selected</span>
+            <button onClick={() => setSelectedIds(new Set())} style={{ background: "none", border: "none", fontSize: 12, color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>Cancel</button>
+            <button onClick={handleBulkDelete} disabled={deleting} style={{ background: "#DC2626", color: "#fff", border: "none", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: deleting ? "not-allowed" : "pointer", opacity: deleting ? 0.7 : 1 }}>
+              {deleting ? "Deleting…" : `🗑 Delete ${selectedIds.size}`}
+            </button>
+          </div>
+        )}
+        {filtered.length > 0 && (
+          <div style={{ padding: "6px 12px 2px", display: "flex", alignItems: "center", gap: 8 }}>
+            <input type="checkbox" checked={selectedIds.size === filtered.length && filtered.length > 0}
+              onChange={toggleSelectAll} style={{ cursor: "pointer", width: 14, height: 14 }} />
+            <span style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600 }}>
+              {selectedIds.size === filtered.length && filtered.length > 0 ? "Deselect all" : "Select all"}
+            </span>
+          </div>
+        )}
+        <div style={{ flex: 1, overflowY: "auto", padding: "4px 8px" }}>
           {filtered.length === 0 ? (
             <div style={{ textAlign: "center", color: "#9CA3AF", fontSize: 13, padding: "40px 16px" }}>
               {filter === "all" ? "No opportunities yet.\nSync Gmail or add manually." : `No ${filter} opportunities.`}
@@ -187,8 +239,11 @@ export default function Opportunities({ opportunities, setOpportunities }) {
             const stage = STAGE_MAP[o.stage] || STAGE_MAP.new;
             const isActive = selected?.id === o.id;
             return (
-              <div key={o.id} onClick={() => setSelected(o)}
-                style={{ padding: "10px 10px", borderRadius: 9, cursor: "pointer", marginBottom: 3, border: isActive ? "1.5px solid #DDD6FE" : "1.5px solid transparent", background: isActive ? "#FAFAFE" : "transparent", transition: "all 0.1s" }}>
+              <div key={o.id}
+                style={{ padding: "10px 10px", borderRadius: 9, cursor: "pointer", marginBottom: 3, border: isActive ? "1.5px solid #DDD6FE" : selectedIds.has(o.id) ? "1.5px solid #FECACA" : "1.5px solid transparent", background: isActive ? "#FAFAFE" : selectedIds.has(o.id) ? "#FFF5F5" : "transparent", transition: "all 0.1s", display: "flex", alignItems: "flex-start", gap: 8 }}>
+                <input type="checkbox" checked={selectedIds.has(o.id)} onChange={e => toggleSelect(o.id, e)}
+                  onClick={e => e.stopPropagation()} style={{ cursor: "pointer", width: 14, height: 14, marginTop: 2, flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }} onClick={() => setSelected(o)}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: "#0F1117", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.customerName || "Unknown"}</span>
                   <span style={{ fontSize: 10, fontWeight: 700, background: stage.bg, color: stage.color, borderRadius: 20, padding: "2px 7px", whiteSpace: "nowrap" }}>{stage.label}</span>
@@ -202,6 +257,7 @@ export default function Opportunities({ opportunities, setOpportunities }) {
                   {o.source === "shopify" && (
                     <span style={{ fontSize: 10, color: "#6366F1", background: "#F0EFFE", borderRadius: 4, padding: "1px 5px", fontWeight: 600 }}>Shopify</span>
                   )}
+                </div>
                 </div>
               </div>
             );

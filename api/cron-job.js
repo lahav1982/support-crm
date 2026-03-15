@@ -285,43 +285,72 @@ async function refreshAccessToken(refreshToken, supabaseUrl, supabaseKey) {
 }
 
 async function triageEmail(parsed, settings, anthropicKey) {
+  const email   = (parsed.fromEmail || "").toLowerCase();
+  const subject = (parsed.subject   || "").toLowerCase();
+
+  const IGNORE_SENDERS = [
+    "noreply", "no-reply", "do-not-reply", "donotreply",
+    "notifications@", "billing@shopify", "billing@stripe",
+    "shopify.com", "stripe.com", "paypal.com", "mailer@",
+    "automated@", "system@", "accounts@shopify", "partners@shopify",
+  ];
+  const IGNORE_SUBJECTS = [
+    "recurring charge", "subscription approved", "app charge", "billing approved",
+    "payment receipt", "your invoice", "order confirmation", "order #",
+    "shipment confirmed", "your receipt", "transaction approved",
+    "account statement", "verify your email", "reset your password",
+  ];
+  if (IGNORE_SENDERS.some(s => email.includes(s))) return { type: "ignore", reason: "Automated/system sender", tag: "General", priority: "low" };
+  if (IGNORE_SUBJECTS.some(p => subject.includes(p))) return { type: "ignore", reason: "Automated notification", tag: "General", priority: "low" };
+
   try {
-    const companyCtx = s?.company_name ? "This is the inbox for " + s.company_name + (s.products ? ", which sells: " + s.products : "") + "." : "This is a customer support inbox.";
+    const companyCtx = settings?.company_name
+      ? `You manage the inbox for "${settings.company_name}"` + (settings.products ? `, which sells: ${settings.products}` : "") + "."
+      : "You manage a customer inbox for an e-commerce store.";
+
     const prompt = `${companyCtx}
 
-Classify this email into exactly one of three categories. Be conservative — when in doubt, use "ignore".
+Read this email carefully and classify it. Think step by step before deciding.
 
 From: ${parsed.fromEmail}
 Subject: ${parsed.subject}
 Body:
-${parsed.body.slice(0, 800)}
+${parsed.body.slice(0, 1000)}
 
-CATEGORY RULES:
+---
+Choose exactly one type:
 
-"sales" — ONLY if a real person is clearly asking a pre-purchase question about buying something. Must show genuine buying intent. Examples that qualify:
-- "How much does X cost?" / "Do you ship to [country]?" / "Is X available?"
-- "I'd like to order [product], how do I...?"
-- "Do you do bulk/wholesale orders?"
-- "What's included in the [product]?" when clearly from a prospective buyer
-- Shopify Inbox chat messages from customers asking about products
-EXCLUDE from "sales": automated Shopify emails, order confirmations, app charge approvals, billing notifications, payment receipts, subscription updates, anything from noreply/automated senders, anything that is clearly a system notification.
+"sales" — A real human (not a system) is asking a genuine pre-purchase question. They want to BUY something or need information BEFORE buying. Clear signals:
+  ✓ Asking about a specific product, its features, availability, or price
+  ✓ Asking about shipping cost, delivery time, or whether you ship to their location
+  ✓ Asking about bulk, wholesale, or custom orders
+  ✓ Expressing intent to purchase: "I want to order...", "I'm interested in..."
+  ✓ Shopify Inbox chat from a customer browsing your store
+  ✗ NOT sales: post-purchase questions, complaints, refund requests (those are "support")
+  ✗ NOT sales: any automated email, receipt, billing notification, app approval
 
-"support" — existing customer with a problem they need help with: wrong item, missing delivery, refund request, complaint, exchange, account issue.
+"support" — A real human who already bought something needs help: wrong/damaged item, missing package, wants a refund or exchange, has a complaint, account problem.
 
-"ignore" — everything else: newsletters, receipts, automated notifications, app approvals, billing alerts, cold outreach, spam, internal emails, anything from an automated/noreply sender.
+"ignore" — Everything else: automated emails, billing/payment notifications, app approvals, order confirmations, newsletters, receipts, cold outreach, spam, no-reply senders, internal platform emails, subscription charges.
 
-Respond ONLY with valid JSON, no markdown:
-{"type":"support|sales|ignore","reason":"one sentence","tag":"Shipping|Refund|Account|Exchange|Technical|General|Complaint|Billing|Inquiry|Pricing|Wholesale","priority":"high|medium|low"}`;
+When uncertain between "sales" and "ignore", choose "ignore".
+When uncertain between "support" and "ignore", choose "ignore".
+
+Respond ONLY with JSON:
+{"type":"support|sales|ignore","reason":"one sentence explaining the decision","tag":"Shipping|Refund|Exchange|Technical|General|Complaint|Billing|Inquiry|Pricing|Wholesale","priority":"high|medium|low"}`;
+
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": anthropicKey, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 120, messages: [{ role: "user", content: prompt }] }),
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 200, messages: [{ role: "user", content: prompt }] }),
     });
-    const d    = await r.json();
+    const d = await r.json();
     const text = d.content?.map(c => c.text || "").join("") || "{}";
-    return JSON.parse(text.replace(/```json|```/g, "").trim());
+    const result = JSON.parse(text.replace(/```json|```/g, "").trim());
+    if (!["support","sales","ignore"].includes(result.type)) result.type = "ignore";
+    return result;
   } catch {
-    return { type: "support", reason: "AI triage failed — imported by default", tag: "General", priority: "medium" };
+    return { type: "ignore", reason: "AI triage failed — skipped to be safe", tag: "General", priority: "low" };
   }
 }
 

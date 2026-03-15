@@ -288,19 +288,19 @@ async function triageEmail(parsed, settings, anthropicKey) {
   const email   = (parsed.fromEmail || "").toLowerCase();
   const subject = (parsed.subject   || "").toLowerCase();
 
-  const IGNORE_SENDERS = [
-    "noreply", "no-reply", "do-not-reply", "donotreply",
-    "notifications@", "billing@shopify", "billing@stripe",
-    "shopify.com", "stripe.com", "paypal.com", "mailer@",
-    "automated@", "system@", "accounts@shopify", "partners@shopify",
+  const localPart = email.split("@")[0] || "";
+  const IGNORE_LOCAL = [
+    "noreply", "no-reply", "do-not-reply", "donotreply", "no_reply",
+    "notifications", "automated", "system", "mailer-daemon", "postmaster",
+    "billing", "invoices", "receipts", "payments",
   ];
   const IGNORE_SUBJECTS = [
-    "recurring charge", "subscription approved", "app charge", "billing approved",
-    "payment receipt", "your invoice", "order confirmation", "order #",
-    "shipment confirmed", "your receipt", "transaction approved",
-    "account statement", "verify your email", "reset your password",
+    "recurring charge approved", "subscription charge approved",
+    "app charge approved", "your shopify bill", "payment receipt for",
+    "shipment tracking update", "verify your email address",
+    "password reset request",
   ];
-  if (IGNORE_SENDERS.some(s => email.includes(s))) return { type: "ignore", reason: "Automated/system sender", tag: "General", priority: "low" };
+  if (IGNORE_LOCAL.includes(localPart)) return { type: "ignore", reason: "Automated/system sender", tag: "General", priority: "low" };
   if (IGNORE_SUBJECTS.some(p => subject.includes(p))) return { type: "ignore", reason: "Automated notification", tag: "General", priority: "low" };
 
   try {

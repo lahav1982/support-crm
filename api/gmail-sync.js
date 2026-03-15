@@ -243,24 +243,27 @@ async function triageEmail(parsed, settings, anthropicKey) {
   const subject = (parsed.subject   || "").toLowerCase();
   const body    = (parsed.body      || "").toLowerCase();
 
-  const IGNORE_SENDERS = [
-    "noreply", "no-reply", "do-not-reply", "donotreply",
-    "notifications@", "billing@shopify", "billing@stripe",
-    "shopify.com", "stripe.com", "paypal.com", "mailer@",
-    "automated@", "system@", "accounts@shopify", "partners@shopify",
+  // Only block emails where the local part (before @) is a known automated prefix.
+  // Never block by domain — customers can email from any domain including shopify.com.
+  const localPart = email.split("@")[0] || "";
+  const IGNORE_LOCAL = [
+    "noreply", "no-reply", "do-not-reply", "donotreply", "no_reply",
+    "notifications", "automated", "system", "mailer-daemon", "postmaster",
+    "billing", "invoices", "receipts", "payments",
   ];
+  // Only block subjects that are 100% system-generated, never written by a human
   const IGNORE_SUBJECT_PATTERNS = [
-    "recurring charge", "subscription approved", "app charge", "billing approved",
-    "payment receipt", "your invoice", "order confirmation", "order #",
-    "shipment confirmed", "your receipt", "transaction approved",
-    "account statement", "verify your email", "reset your password",
+    "recurring charge approved", "subscription charge approved",
+    "app charge approved", "your shopify bill", "payment receipt for",
+    "shipment tracking update", "verify your email address",
+    "password reset request",
   ];
 
-  if (IGNORE_SENDERS.some(s => email.includes(s))) {
+  if (IGNORE_LOCAL.includes(localPart)) {
     return { type: "ignore", reason: "Automated/system sender", tag: "General", priority: "low" };
   }
   if (IGNORE_SUBJECT_PATTERNS.some(p => subject.includes(p))) {
-    return { type: "ignore", reason: "Automated notification or receipt", tag: "General", priority: "low" };
+    return { type: "ignore", reason: "Automated notification", tag: "General", priority: "low" };
   }
 
   // ── AI classification for real human emails ───────────────────────────────

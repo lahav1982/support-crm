@@ -152,6 +152,48 @@ export default async function handler(req, res) {
       // If it's part of a known thread, thread scan already handled it
       if (threadId && threadToTicket[threadId]) { results.skipped++; continue; }
 
+      // ── Shopify Inbox detection ──────────────────────────────────────────────
+      // Shopify Inbox notifications come from specific Shopify senders.
+      // They contain the customer name in subject and message in body.
+      const isShopifyInbox = (
+        parsed.fromEmail?.includes("shopify.com") ||
+        parsed.fromEmail?.includes("notifications@") ||
+        parsed.subject?.toLowerCase().includes("new message from") ||
+        parsed.body?.toLowerCase().includes("shopify inbox") ||
+        parsed.body?.toLowerCase().includes("someone sent you a message")
+      );
+
+      if (isShopifyInbox) {
+        // Extract customer name from subject — Shopify format: "New message from David Gomez"
+        const nameFromSubject = parsed.subject?.match(/(?:new message from|message from)\s+(.+)/i)?.[1]?.trim();
+        const customerName = nameFromSubject || parsed.fromName || "Unknown";
+
+        // Save as opportunity instead of inbox email
+        await fetch(supabaseUrl + "/rest/v1/opportunities", {
+          method: "POST",
+          headers: {
+            "Content-Type":  "application/json",
+            "apikey":        supabaseKey,
+            "Authorization": "Bearer " + supabaseKey,
+            "Prefer":        "return=minimal",
+          },
+          body: JSON.stringify({
+            customer_name:    customerName,
+            message:          parsed.body,
+            notes:            "",
+            estimated_value:  "Unknown",
+            stage:            "new",
+            source:           "shopify",
+            gmail_message_id: msg.id,
+            created_at:       parsed.sentAt,
+          }),
+        });
+        importedMessageIds.add(msg.id);
+        results.imported++;
+        results.details.push({ subject: parsed.subject, from: parsed.fromEmail, decision: "opportunity", reason: "Shopify Inbox chat" });
+        continue;
+      }
+
       // AI triage for genuinely new emails
       const triage = await triageEmail(parsed, s, anthropicKey);
       results.details.push({

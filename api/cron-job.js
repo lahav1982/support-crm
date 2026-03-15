@@ -166,7 +166,24 @@ async function runGmailSync(supabaseUrl, supabaseKey, anthropicKey) {
     if (threadId && threadToTicket[threadId]) { results.skipped++; continue; }
 
     const triage = await triageEmail(parsed, s, anthropicKey);
-    if (!triage.isSupport) { results.rejected++; continue; }
+    if (triage.type === "ignore") { results.rejected++; continue; }
+
+    if (triage.type === "sales") {
+      await fetch(supabaseUrl + "/rest/v1/opportunities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": supabaseKey, "Authorization": "Bearer " + supabaseKey, "Prefer": "return=minimal" },
+        body: JSON.stringify({
+          customer_name: parsed.fromName || parsed.fromEmail,
+          customer_email: parsed.fromEmail,
+          message: parsed.body,
+          notes: "", estimated_value: "Unknown", stage: "new", source: "email",
+          gmail_message_id: msg.id, created_at: parsed.sentAt,
+        }),
+      });
+      importedMessageIds.add(msg.id);
+      results.imported++;
+      continue;
+    }
 
     const saveRes = await fetch(supabaseUrl + "/rest/v1/tickets", {
       method: "POST",
@@ -269,7 +286,23 @@ async function refreshAccessToken(refreshToken, supabaseUrl, supabaseKey) {
 
 async function triageEmail(parsed, settings, anthropicKey) {
   try {
-    const prompt = `Triage this email for a customer support inbox. Is it a genuine customer support message requiring a response?\n\nFrom: ${parsed.fromEmail}\nSubject: ${parsed.subject}\nBody: ${parsed.body.slice(0, 400)}\n\nRespond with JSON only: {"isSupport":true,"reason":"one sentence","tag":"Shipping|Refund|Account|Sales|Technical|General|Complaint|Billing","priority":"high|medium|low"}`;
+    const companyCtx = s?.company_name ? "This is the inbox for " + s.company_name + (s.products ? ", which sells: " + s.products : "") + "." : "This is a customer support inbox.";
+    const prompt = `${companyCtx}
+
+Classify this email into exactly one of three categories:
+
+From: ${parsed.fromEmail}
+Subject: ${parsed.subject}
+Body (first 600 chars):
+${parsed.body.slice(0, 600)}
+
+Categories:
+- "support" — existing customer with a problem, complaint, refund, exchange, order issue, delivery question, or account issue
+- "sales" — potential customer asking about products, pricing, availability, bulk orders, wholesale, customisation, or expressing purchase intent. Also Shopify Inbox chats.
+- "ignore" — newsletter, automated receipt, spam, cold outreach, no-reply notification, internal email
+
+Respond ONLY with valid JSON, no markdown:
+{"type":"support|sales|ignore","reason":"one sentence","tag":"Shipping|Refund|Account|Exchange|Technical|General|Complaint|Billing|Inquiry|Pricing|Wholesale","priority":"high|medium|low"}`;
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": anthropicKey, "anthropic-version": "2023-06-01" },
@@ -279,7 +312,7 @@ async function triageEmail(parsed, settings, anthropicKey) {
     const text = d.content?.map(c => c.text || "").join("") || "{}";
     return JSON.parse(text.replace(/```json|```/g, "").trim());
   } catch {
-    return { isSupport: true, tag: "General", priority: "medium" };
+    return { type: "support", reason: "AI triage failed — imported by default", tag: "General", priority: "medium" };
   }
 }
 

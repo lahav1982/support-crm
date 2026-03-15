@@ -17,9 +17,34 @@ export default function Opportunities({ opportunities, setOpportunities }) {
   const [search, setSearch]       = useState("");
   const [showAdd, setShowAdd]     = useState(false);
   const [saving, setSaving]       = useState(false);
+  const [syncing, setSyncing]     = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
   const [newForm, setNewForm]     = useState({ customerName: "", message: "", notes: "", estimatedValue: "Unknown", stage: "new" });
 
   const ops = opportunities || [];
+
+  async function handleSync() {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch("/api/gmail-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      // Reload opportunities after sync
+      const opRes = await fetch("/api/opportunities", { credentials: "include" });
+      const opData = await opRes.json();
+      if (Array.isArray(opData)) setOpportunities(opData.map(rowToOpp));
+      setSyncResult(data.error ? { ok: false, msg: data.error } : { ok: true, msg: `Sync complete — ${data.imported || 0} new items` });
+    } catch (e) {
+      setSyncResult({ ok: false, msg: e.message });
+    }
+    setSyncing(false);
+    setTimeout(() => setSyncResult(null), 5000);
+  }
 
   const filtered = ops.filter(o => {
     const matchStage  = filter === "all" || o.stage === filter;
@@ -119,11 +144,23 @@ export default function Opportunities({ opportunities, setOpportunities }) {
         <div style={{ padding: "16px 14px 10px", borderBottom: "1px solid #F3F4F6" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
             <span style={{ fontSize: 15, fontWeight: 700, color: "#0F1117" }}>Opportunities</span>
-            <button onClick={() => setShowAdd(true)}
-              style={{ background: "linear-gradient(135deg,#6366F1,#8B5CF6)", color: "#fff", border: "none", borderRadius: 7, padding: "5px 11px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-              + Add
-            </button>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={handleSync} disabled={syncing}
+                style={{ background: syncing ? "#F3F4F6" : "#F0EFFE", color: syncing ? "#9CA3AF" : "#6366F1", border: "none", borderRadius: 7, padding: "5px 10px", fontSize: 12, fontWeight: 700, cursor: syncing ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                <span style={{ display: "inline-block", animation: syncing ? "spin 1s linear infinite" : "none" }}>⟳</span>
+                {syncing ? "Syncing…" : "Sync"}
+              </button>
+              <button onClick={() => setShowAdd(true)}
+                style={{ background: "linear-gradient(135deg,#6366F1,#8B5CF6)", color: "#fff", border: "none", borderRadius: 7, padding: "5px 11px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                + Add
+              </button>
+            </div>
           </div>
+          {syncResult && (
+            <div style={{ margin: "0 0 8px", padding: "7px 10px", borderRadius: 7, fontSize: 12, fontWeight: 600, background: syncResult.ok ? "#F0FDF4" : "#FEF2F2", color: syncResult.ok ? "#16A34A" : "#DC2626", border: "1px solid " + (syncResult.ok ? "#BBF7D0" : "#FECACA") }}>
+              {syncResult.ok ? "✓" : "✗"} {syncResult.msg}
+            </div>
+          )}
 
           {/* Search */}
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..."

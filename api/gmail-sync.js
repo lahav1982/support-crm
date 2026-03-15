@@ -199,14 +199,42 @@ export default async function handler(req, res) {
       results.details.push({
         subject:  parsed.subject,
         from:     parsed.fromEmail,
-        decision: triage.isSupport ? "imported" : "rejected",
+        decision: triage.type,
         reason:   triage.reason,
         tag:      triage.tag,
         priority: triage.priority,
       });
 
-      if (!triage.isSupport) { results.rejected++; continue; }
+      if (triage.type === "ignore") { results.rejected++; continue; }
 
+      if (triage.type === "sales") {
+        // Route to opportunities table
+        await fetch(supabaseUrl + "/rest/v1/opportunities", {
+          method: "POST",
+          headers: {
+            "Content-Type":  "application/json",
+            "apikey":        supabaseKey,
+            "Authorization": "Bearer " + supabaseKey,
+            "Prefer":        "return=minimal",
+          },
+          body: JSON.stringify({
+            customer_name:    parsed.fromName || parsed.fromEmail,
+            customer_email:   parsed.fromEmail,
+            message:          parsed.body,
+            notes:            "",
+            estimated_value:  "Unknown",
+            stage:            "new",
+            source:           "email",
+            gmail_message_id: msg.id,
+            created_at:       parsed.sentAt,
+          }),
+        });
+        importedMessageIds.add(msg.id);
+        results.imported++;
+        continue;
+      }
+
+      // type === "support" — save to tickets as before
       const saveRes = await fetch(supabaseUrl + "/rest/v1/tickets", {
         method: "POST",
         headers: {
@@ -258,18 +286,20 @@ async function triageEmail(parsed, settings, anthropicKey) {
 
     const prompt = `${companyCtx}
 
-Triage this email — is it a genuine customer support message?
+Classify this email into exactly one of three categories:
 
 From: ${parsed.fromEmail}
 Subject: ${parsed.subject}
 Body (first 600 chars):
 ${parsed.body.slice(0, 600)}
 
-Respond ONLY with valid JSON, no markdown:
-{"isSupport":true,"reason":"one sentence","tag":"Shipping|Refund|Account|Sales|Exchange|Technical|General|Complaint|Billing","priority":"high|medium|low"}
+Categories:
+- "support" — existing customer with a problem, complaint, refund, exchange, order issue, delivery question, or account issue
+- "sales" — potential customer asking about products, pricing, availability, bulk orders, wholesale, customisation, or expressing purchase intent. Also Shopify Inbox chats.
+- "ignore" — newsletter, automated receipt, spam, cold outreach, no-reply notification, internal email
 
-TRUE if: customer asking about order, delivery, product, refund, complaint, billing, account, or any genuine question needing a response.
-FALSE if: newsletter, automated notification, receipt, spam, cold outreach, no-reply sender.`;
+Respond ONLY with valid JSON, no markdown:
+{"type":"support|sales|ignore","reason":"one sentence","tag":"Shipping|Refund|Account|Exchange|Technical|General|Complaint|Billing|Inquiry|Pricing|Wholesale","priority":"high|medium|low"}`;
 
     const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -278,9 +308,14 @@ FALSE if: newsletter, automated notification, receipt, spam, cold outreach, no-r
     });
     const aiData = await aiRes.json();
     const text = aiData.content?.map(c => c.text || "").join("") || "{}";
-    return JSON.parse(text.replace(/```json|```/g, "").trim());
+    const parsed2 = JSON.parse(text.replace(/```json|```/g, "").trim());
+    // Normalise: support old isSupport boolean format too
+    if (parsed2.type === undefined) {
+      parsed2.type = parsed2.isSupport ? "support" : "ignore";
+    }
+    return parsed2;
   } catch (e) {
-    return { isSupport: true, reason: "AI triage failed — imported by default", tag: "General", priority: "medium" };
+    return { type: "support", reason: "AI triage failed — imported by default", tag: "General", priority: "medium" };
   }
 }
 

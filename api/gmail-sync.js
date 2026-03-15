@@ -152,49 +152,8 @@ export default async function handler(req, res) {
       // If it's part of a known thread, thread scan already handled it
       if (threadId && threadToTicket[threadId]) { results.skipped++; continue; }
 
-      // ── Shopify Inbox detection ──────────────────────────────────────────────
-      // Shopify Inbox notifications come from specific Shopify senders.
-      // They contain the customer name in subject and message in body.
-      const isShopifyInbox = (
-        parsed.fromEmail?.includes("shopify.com") ||
-        parsed.fromEmail?.includes("notifications@") ||
-        parsed.subject?.toLowerCase().includes("new message from") ||
-        parsed.body?.toLowerCase().includes("shopify inbox") ||
-        parsed.body?.toLowerCase().includes("someone sent you a message")
-      );
-
-      if (isShopifyInbox) {
-        // Extract customer name from subject — Shopify format: "New message from David Gomez"
-        const nameFromSubject = parsed.subject?.match(/(?:new message from|message from)\s+(.+)/i)?.[1]?.trim();
-        const customerName = nameFromSubject || parsed.fromName || "Unknown";
-
-        // Save as opportunity instead of inbox email
-        await fetch(supabaseUrl + "/rest/v1/opportunities", {
-          method: "POST",
-          headers: {
-            "Content-Type":  "application/json",
-            "apikey":        supabaseKey,
-            "Authorization": "Bearer " + supabaseKey,
-            "Prefer":        "return=minimal",
-          },
-          body: JSON.stringify({
-            customer_name:    customerName,
-            message:          parsed.body,
-            notes:            "",
-            estimated_value:  "Unknown",
-            stage:            "new",
-            source:           "shopify",
-            gmail_message_id: msg.id,
-            created_at:       parsed.sentAt,
-          }),
-        });
-        importedMessageIds.add(msg.id);
-        results.imported++;
-        results.details.push({ subject: parsed.subject, from: parsed.fromEmail, decision: "opportunity", reason: "Shopify Inbox chat" });
-        continue;
-      }
-
-      // AI triage for genuinely new emails
+      // AI triage — classifies as support, sales, or ignore
+      // Shopify Inbox emails are included and evaluated by the AI like any other email
       const triage = await triageEmail(parsed, s, anthropicKey);
       results.details.push({
         subject:  parsed.subject,
@@ -286,17 +245,26 @@ async function triageEmail(parsed, settings, anthropicKey) {
 
     const prompt = `${companyCtx}
 
-Classify this email into exactly one of three categories:
+Classify this email into exactly one of three categories. Be conservative — when in doubt, use "ignore".
 
 From: ${parsed.fromEmail}
 Subject: ${parsed.subject}
-Body (first 600 chars):
-${parsed.body.slice(0, 600)}
+Body:
+${parsed.body.slice(0, 800)}
 
-Categories:
-- "support" — existing customer with a problem, complaint, refund, exchange, order issue, delivery question, or account issue
-- "sales" — potential customer asking about products, pricing, availability, bulk orders, wholesale, customisation, or expressing purchase intent. Also Shopify Inbox chats.
-- "ignore" — newsletter, automated receipt, spam, cold outreach, no-reply notification, internal email
+CATEGORY RULES:
+
+"sales" — ONLY if a real person is clearly asking a pre-purchase question about buying something. Must show genuine buying intent. Examples that qualify:
+- "How much does X cost?" / "Do you ship to [country]?" / "Is X available?"
+- "I'd like to order [product], how do I...?"
+- "Do you do bulk/wholesale orders?"
+- "What's included in the [product]?" when clearly from a prospective buyer
+- Shopify Inbox chat messages from customers asking about products
+EXCLUDE from "sales": automated Shopify emails, order confirmations, app charge approvals, billing notifications, payment receipts, subscription updates, anything from noreply/automated senders, anything that is clearly a system notification.
+
+"support" — existing customer with a problem they need help with: wrong item, missing delivery, refund request, complaint, exchange, account issue.
+
+"ignore" — everything else: newsletters, receipts, automated notifications, app approvals, billing alerts, cold outreach, spam, internal emails, anything from an automated/noreply sender.
 
 Respond ONLY with valid JSON, no markdown:
 {"type":"support|sales|ignore","reason":"one sentence","tag":"Shipping|Refund|Account|Exchange|Technical|General|Complaint|Billing|Inquiry|Pricing|Wholesale","priority":"high|medium|low"}`;
@@ -357,25 +325,41 @@ function parseGmailMessage(msg) {
 
   body = body.replace(/^>.*$/gm, "").replace(/^On .+wrote:$/gm, "").replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 
-  // ── Shopify contact form parser ───────────────────────────────────────────
-  // Shopify sends contact forms as raw key/value text with translation keys.
-  // Extract the real sender name, email, and message and rewrite cleanly.
-  if (body.includes("Translation Missing") || body.includes("contact form")) {
-    // Extract customer name
-    const nameMatch = body.match(/(?:Translation Missing:[^:]+name|name)[:\s]+([^\n]+)/i);
-    const bodyMatch = body.match(/(?:Translation Missing:[^:]+body|message|body)[:\s]+([\s\S]+?)(?:Country Code:|$)/i);
-    const emailMatch2 = body.match(/Email[:\s]+([^\s\n]+@[^\s\n]+)/i);
+  // ── Shopify message parser ────────────────────────────────────────────────
+  // Handles two Shopify email formats:
+  // 1. Contact form emails (Translation Missing keys)
+  // 2. Shopify Inbox chat notifications ("someone sent you a message")
 
+  if (body.includes("Translation Missing") || body.includes("contact form")) {
+    const nameMatch  = body.match(/(?:Translation Missing:[^:]+name|name)[:\s]+([^\n]+)/i);
+    const bodyMatch  = body.match(/(?:Translation Missing:[^:]+body|message|body)[:\s]+([\s\S]+?)(?:Country Code:|$)/i);
+    const emailMatch2 = body.match(/Email[:\s]+([^\s\n]+@[^\s\n]+)/i);
     const extractedName  = nameMatch?.[1]?.trim();
     const extractedEmail = emailMatch2?.[1]?.trim();
     const extractedBody  = bodyMatch?.[1]?.trim();
-
     if (extractedBody) {
       body = extractedBody;
-      // Override sender info if we extracted better data from the form
       if (extractedName)  fromName  = extractedName;
       if (extractedEmail) fromEmail = extractedEmail;
     }
+  } else if (
+    body.toLowerCase().includes("sent you a message") ||
+    body.toLowerCase().includes("shopify inbox") ||
+    get("From").toLowerCase().includes("shopify.com")
+  ) {
+    // Shopify Inbox notification — extract just what the customer wrote.
+    // Format varies but the message is typically after a line break following
+    // "sent you a message" or between dashes/quotes.
+    const inboxMatch =
+      body.match(/sent you a message[:\s\n]+([\s\S]+?)(?:\n\n|Reply to this|View conversation|--)/i) ||
+      body.match(/message:[\s\n]+([\s\S]+?)(?:\n\n|Reply|View|--)/i) ||
+      body.match(/[""]([\s\S]{10,})[""]/) ;  // quoted message fallback
+
+    // Extract customer name from subject "New message from David Gomez"
+    const nameFromSubject = get("Subject").match(/(?:new message from|message from)\s+(.+)/i)?.[1]?.trim();
+
+    if (inboxMatch?.[1]?.trim()) body = inboxMatch[1].trim();
+    if (nameFromSubject) fromName = nameFromSubject;
   }
   // internalDate is ms since epoch — the actual time the email was sent/received
   const sentAt = msg.internalDate

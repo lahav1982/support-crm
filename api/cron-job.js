@@ -289,17 +289,26 @@ async function triageEmail(parsed, settings, anthropicKey) {
     const companyCtx = s?.company_name ? "This is the inbox for " + s.company_name + (s.products ? ", which sells: " + s.products : "") + "." : "This is a customer support inbox.";
     const prompt = `${companyCtx}
 
-Classify this email into exactly one of three categories:
+Classify this email into exactly one of three categories. Be conservative — when in doubt, use "ignore".
 
 From: ${parsed.fromEmail}
 Subject: ${parsed.subject}
-Body (first 600 chars):
-${parsed.body.slice(0, 600)}
+Body:
+${parsed.body.slice(0, 800)}
 
-Categories:
-- "support" — existing customer with a problem, complaint, refund, exchange, order issue, delivery question, or account issue
-- "sales" — potential customer asking about products, pricing, availability, bulk orders, wholesale, customisation, or expressing purchase intent. Also Shopify Inbox chats.
-- "ignore" — newsletter, automated receipt, spam, cold outreach, no-reply notification, internal email
+CATEGORY RULES:
+
+"sales" — ONLY if a real person is clearly asking a pre-purchase question about buying something. Must show genuine buying intent. Examples that qualify:
+- "How much does X cost?" / "Do you ship to [country]?" / "Is X available?"
+- "I'd like to order [product], how do I...?"
+- "Do you do bulk/wholesale orders?"
+- "What's included in the [product]?" when clearly from a prospective buyer
+- Shopify Inbox chat messages from customers asking about products
+EXCLUDE from "sales": automated Shopify emails, order confirmations, app charge approvals, billing notifications, payment receipts, subscription updates, anything from noreply/automated senders, anything that is clearly a system notification.
+
+"support" — existing customer with a problem they need help with: wrong item, missing delivery, refund request, complaint, exchange, account issue.
+
+"ignore" — everything else: newsletters, receipts, automated notifications, app approvals, billing alerts, cold outreach, spam, internal emails, anything from an automated/noreply sender.
 
 Respond ONLY with valid JSON, no markdown:
 {"type":"support|sales|ignore","reason":"one sentence","tag":"Shipping|Refund|Account|Exchange|Technical|General|Complaint|Billing|Inquiry|Pricing|Wholesale","priority":"high|medium|low"}`;
@@ -333,11 +342,14 @@ function parseGmailMessage(msg) {
   if (!body && msg.snippet) body = msg.snippet;
   body = body.replace(/^>.*$/gm,"").replace(/\r\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();
 
-  // Shopify contact form parser
+  // ── Shopify message parser ────────────────────────────────────────────────
   if (body.includes("Translation Missing") || body.includes("contact form")) {
-    const nameMatch  = body.match(/(?:Translation Missing:[^:]+name|name)[:\s]+([^\n]+)/i);
+    const nameMatch  = body.match(/(?:Translation Missing:[^:]+name|name)[:\s]+([^
+]+)/i);
     const bodyMatch  = body.match(/(?:Translation Missing:[^:]+body|message|body)[:\s]+([\s\S]+?)(?:Country Code:|$)/i);
-    const emailMatch2 = body.match(/Email[:\s]+([^\s\n]+@[^\s\n]+)/i);
+    const emailMatch2 = body.match(/Email[:\s]+([^\s
+]+@[^\s
+]+)/i);
     const extractedName  = nameMatch?.[1]?.trim();
     const extractedEmail = emailMatch2?.[1]?.trim();
     const extractedBody  = bodyMatch?.[1]?.trim();
@@ -346,6 +358,23 @@ function parseGmailMessage(msg) {
       if (extractedName)  fromName  = extractedName;
       if (extractedEmail) fromEmail = extractedEmail;
     }
+  } else if (
+    body.toLowerCase().includes("sent you a message") ||
+    body.toLowerCase().includes("shopify inbox") ||
+    get("From").toLowerCase().includes("shopify.com")
+  ) {
+    const inboxMatch =
+      body.match(/sent you a message[:\s
+]+([\s\S]+?)(?:
+
+|Reply to this|View conversation|--)/i) ||
+      body.match(/message:[\s
+]+([\s\S]+?)(?:
+
+|Reply|View|--)/i);
+    const nameFromSubject = get("Subject").match(/(?:new message from|message from)\s+(.+)/i)?.[1]?.trim();
+    if (inboxMatch?.[1]?.trim()) body = inboxMatch[1].trim();
+    if (nameFromSubject) fromName = nameFromSubject;
   }
 
   const sentAt = msg.internalDate

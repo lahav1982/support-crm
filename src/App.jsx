@@ -62,13 +62,15 @@ export default function App() {
       }
 
       try {
-        const [ticketRows, settingsRow, gmail] = await Promise.all([
+        const [ticketRows, settingsRow, gmail, oppsRows] = await Promise.all([
           fetchTickets(),
           fetchSettings(),
           fetchGmailStatus(),
+          fetch("/api/opportunities", { credentials: "include" }).then(r => r.json()).catch(() => []),
         ]);
 
         setTickets((ticketRows || []).map(rowToTicket));
+        setOpportunities(Array.isArray(oppsRows) ? oppsRows.map(rowToOpp) : []);
         const ctx = rowToSettings(settingsRow);
         setContextForm(ctx);
         setSavedContext(ctx);

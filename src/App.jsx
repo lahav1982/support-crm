@@ -177,13 +177,13 @@ export default function App() {
       )}
 
       {/* Sidebar */}
-      <div style={{ width: 240, background: "#1C2B1C", display: "flex", flexDirection: "column", padding: "24px 14px", gap: 2, flexShrink: 0 }}>
+      <div style={{ width: 240, background: "#2C4A2C", display: "flex", flexDirection: "column", padding: "24px 14px", gap: 2, flexShrink: 0 }}>
         {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 10px 28px" }}>
           <div style={{ width: 36, height: 36, borderRadius: 10, background: "#3D6B3D", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: "1px solid #4A7C4A" }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           </div>
-          <span style={{ fontSize: 15, fontWeight: 600, color: "#E8E0D0", letterSpacing: "0.2px", fontFamily: "'Playfair Display', serif" }}>SupportAI</span>
+          <span style={{ fontSize: 15, fontWeight: 600, color: "#F0EBE0", letterSpacing: "0.2px", fontFamily: "'Playfair Display', serif" }}>SupportAI</span>
         </div>
 
         {/* Nav */}
@@ -191,8 +191,8 @@ export default function App() {
           const isActive = page === n.id;
           const badge = n.id === "inbox" ? emailCount : n.id === "tickets" ? ticketCount : n.id === "opportunities" ? oppsCount : 0;
           return (
-            <button key={n.id} onClick={() => setPage(n.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 13px", borderRadius: 9, border: "none", background: isActive ? "rgba(255,255,255,0.12)" : "transparent", color: isActive ? "#E8E0D0" : "rgba(232,224,208,0.55)", cursor: "pointer", fontSize: 14, fontWeight: isActive ? 600 : 400, transition: "all 0.12s", textAlign: "left" }}>
-              <span style={{ color: isActive ? "#A8C5A8" : "rgba(232,224,208,0.4)", display: "flex" }}>{n.icon}</span>
+            <button key={n.id} onClick={() => setPage(n.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 13px", borderRadius: 9, border: "none", background: isActive ? "rgba(255,255,255,0.15)" : "transparent", color: isActive ? "#F0EBE0" : "rgba(240,235,224,0.75)", cursor: "pointer", fontSize: 14.5, fontWeight: isActive ? 700 : 500, transition: "all 0.12s", textAlign: "left" }}>
+              <span style={{ color: isActive ? "#A8C5A8" : "rgba(240,235,224,0.5)", display: "flex" }}>{n.icon}</span>
               {n.label}
               {badge > 0 && (
                 <span style={{ marginLeft: "auto", background: n.id === "tickets" ? "rgba(168,197,168,0.25)" : n.id === "opportunities" ? "rgba(168,197,168,0.25)" : "rgba(220,100,80,0.25)", color: n.id === "tickets" ? "#A8C5A8" : n.id === "opportunities" ? "#A8C5A8" : "#E88878", fontSize: 10, fontWeight: 700, borderRadius: 20, padding: "2px 8px" }}>{badge}</span>
@@ -210,26 +210,26 @@ export default function App() {
         <div style={{ padding: "8px 13px", display: "flex", flexDirection: "column", gap: 5 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <span style={{ width: 6, height: 6, background: "#7AAD7A", borderRadius: "50%", display: "inline-block" }} />
-            <span style={{ fontSize: 11, color: "rgba(232,224,208,0.45)" }}>DB Connected</span>
+            <span style={{ fontSize: 11, color: "rgba(240,235,224,0.5)" }}>DB Connected</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <span style={{ width: 6, height: 6, background: gmailStatus.connected ? "#7AAD7A" : "rgba(232,224,208,0.2)", borderRadius: "50%", display: "inline-block" }} />
-            <span style={{ fontSize: 11, color: gmailStatus.connected ? "rgba(232,224,208,0.6)" : "rgba(232,224,208,0.35)" }}>
+            <span style={{ fontSize: 11, color: gmailStatus.connected ? "rgba(240,235,224,0.7)" : "rgba(240,235,224,0.4)" }}>
               {gmailStatus.connected ? "Gmail Connected" : "Gmail Not Connected"}
             </span>
           </div>
         </div>
 
         {/* User */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 13px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#3D6B3D", display: "flex", alignItems: "center", justifyContent: "center", color: "#A8C5A8", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>Y</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 13px", borderTop: "1px solid rgba(255,255,255,0.12)" }}>
+          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#4A7C4A", display: "flex", alignItems: "center", justifyContent: "center", color: "#C5D9C5", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>Y</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "#E8E0D0" }}>You</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#F0EBE0" }}>You</div>
             <div style={{ fontSize: 10, color: "rgba(232,224,208,0.4)" }}>Admin</div>
           </div>
           <button onClick={async () => { await fetch("/api/logout", { method: "POST" }); window.location.reload(); }}
             title="Log out"
-            style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(232,224,208,0.35)", padding: 4, display: "flex", alignItems: "center", borderRadius: 6, flexShrink: 0 }}>
+            style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(240,235,224,0.45)", padding: 4, display: "flex", alignItems: "center", borderRadius: 6, flexShrink: 0 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           </button>
         </div>

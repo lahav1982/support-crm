@@ -21,28 +21,28 @@ const RESPONSE_DATA = [
 ];
 
 const TAG_DATA = [
-  { name: "Shipping", value: 28, color: "#6366F1" },
+  { name: "Shipping", value: 28, color: "#3D6B3D" },
   { name: "Refund", value: 22, color: "#EF4444" },
-  { name: "Account", value: 18, color: "#8B5CF6" },
+  { name: "Account", value: 18, color: "#4A7C4A" },
   { name: "Sales", value: 16, color: "#10B981" },
   { name: "Exchange", value: 10, color: "#F59E0B" },
   { name: "Technical", value: 6, color: "#3B82F6" },
 ];
 
 const TEAM_DATA = [
-  { name: "You",   resolved: 12, open: 3, color: "#6366F1", max: 15 },
+  { name: "You",   resolved: 12, open: 3, color: "#3D6B3D", max: 15 },
   { name: "Maria", resolved: 9,  open: 2, color: "#F59E0B", max: 15 },
   { name: "James", resolved: 11, open: 1, color: "#10B981", max: 15 },
 ];
 
-const tooltipStyle = { background: "#fff", border: "1px solid #EAECF0", borderRadius: 8, color: "#0F1117", fontSize: 14, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" };
+const tooltipStyle = { background: "#fff", border: "1px solid #EAECF0", borderRadius: 8, color: "#1C2B1C", fontSize: 14, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" };
 
 function StatCard({ label, value, sub, color, bg }) {
   return (
     <div style={{ background: "#fff", border: "1px solid #EAECF0", borderRadius: 14, padding: "20px 22px", flex: 1, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>{label}</div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: "#8A9E8A", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>{label}</div>
       <div style={{ fontSize: 32, fontWeight: 800, color: color, letterSpacing: "-0.8px", marginBottom: 4 }}>{value}</div>
-      <div style={{ fontSize: 13, color: "#9CA3AF" }}>{sub}</div>
+      <div style={{ fontSize: 13, color: "#8A9E8A" }}>{sub}</div>
     </div>
   );
 }
@@ -50,8 +50,8 @@ function StatCard({ label, value, sub, color, bg }) {
 function ChartCard({ title, sub, children }) {
   return (
     <div style={{ background: "#fff", border: "1px solid #EAECF0", borderRadius: 14, padding: 22, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-      <div style={{ fontSize: 15, fontWeight: 700, color: "#0F1117", marginBottom: 2 }}>{title}</div>
-      <div style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 18 }}>{sub}</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: "#1C2B1C", marginBottom: 2 }}>{title}</div>
+      <div style={{ fontSize: 13, color: "#8A9E8A", marginBottom: 18 }}>{sub}</div>
       {children}
     </div>
   );
@@ -63,18 +63,18 @@ export default function Analytics({ tickets }) {
   const resolutionRate = Math.round((resolved / tickets.length) * 100);
 
   return (
-    <div style={{ overflowY: "auto", height: "100%", padding: 28, background: "#F5F6FA", fontFamily: "inherit" }}>
+    <div style={{ overflowY: "auto", height: "100%", padding: 28, background: "#F7F5F0", fontFamily: "inherit" }}>
       <div style={{ marginBottom: 22 }}>
-        <h2 style={{ margin: "0 0 3px", fontSize: 18, fontWeight: 800, color: "#0F1117", letterSpacing: "-0.4px" }}>Analytics Overview</h2>
-        <p style={{ margin: 0, fontSize: 14, color: "#9CA3AF" }}>Last 7 days · Updates in real time</p>
+        <h2 style={{ margin: "0 0 3px", fontSize: 18, fontWeight: 800, color: "#1C2B1C", letterSpacing: "-0.4px" }}>Analytics Overview</h2>
+        <p style={{ margin: 0, fontSize: 14, color: "#8A9E8A" }}>Last 7 days · Updates in real time</p>
       </div>
 
       {/* Stats */}
       <div style={{ display: "flex", gap: 14, marginBottom: 18 }}>
-        <StatCard label="Total Tickets" value={tickets.length} sub="All time" color="#6366F1" />
+        <StatCard label="Total Tickets" value={tickets.length} sub="All time" color="#3D6B3D" />
         <StatCard label="Open" value={open} sub="Need attention" color="#EF4444" />
-        <StatCard label="Resolved" value={resolved} sub="This week" color="#16A34A" />
-        <StatCard label="Resolution Rate" value={`${resolutionRate}%`} sub="↑ 4% vs last week" color="#6366F1" />
+        <StatCard label="Resolved" value={resolved} sub="This week" color="#3D6B3D" />
+        <StatCard label="Resolution Rate" value={`${resolutionRate}%`} sub="↑ 4% vs last week" color="#3D6B3D" />
         <StatCard label="Avg Response" value="2.1h" sub="↓ 18min vs last week" color="#F59E0B" />
       </div>
 
@@ -84,8 +84,8 @@ export default function Analytics({ tickets }) {
           <ChartCard title="Ticket Volume" sub="Opened vs resolved per day">
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={VOLUME_DATA} barGap={3}>
-                <XAxis dataKey="day" tick={{ fill: "#9CA3AF", fontSize: 13, fontFamily: "Plus Jakarta Sans" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "#9CA3AF", fontSize: 13, fontFamily: "Plus Jakarta Sans" }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="day" tick={{ fill: "#8A9E8A", fontSize: 13, fontFamily: "DM Sans" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "#8A9E8A", fontSize: 13, fontFamily: "DM Sans" }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "#F5F3FF" }} />
                 <Bar dataKey="open" name="Opened" fill="#EF4444" radius={[5,5,0,0]} />
                 <Bar dataKey="resolved" name="Resolved" fill="#10B981" radius={[5,5,0,0]} />
@@ -101,10 +101,10 @@ export default function Analytics({ tickets }) {
           <ChartCard title="Avg Response Time" sub="Hours to first reply">
             <ResponsiveContainer width="100%" height={180}>
               <LineChart data={RESPONSE_DATA}>
-                <XAxis dataKey="day" tick={{ fill: "#9CA3AF", fontSize: 13 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: "#9CA3AF", fontSize: 13 }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="day" tick={{ fill: "#8A9E8A", fontSize: 13 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "#8A9E8A", fontSize: 13 }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Line type="monotone" dataKey="hours" name="Hours" stroke="#6366F1" strokeWidth={2.5} dot={{ fill: "#6366F1", r: 3, strokeWidth: 0 }} />
+                <Line type="monotone" dataKey="hours" name="Hours" stroke="#3D6B3D" strokeWidth={2.5} dot={{ fill: "#3D6B3D", r: 3, strokeWidth: 0 }} />
               </LineChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -129,9 +129,9 @@ export default function Analytics({ tickets }) {
                   <div key={t.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                       <span style={{ width: 8, height: 8, borderRadius: 2, background: t.color, display: "inline-block" }} />
-                      <span style={{ fontSize: 14, color: "#374151" }}>{t.name}</span>
+                      <span style={{ fontSize: 14, color: "#3A4E3A" }}>{t.name}</span>
                     </div>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "#0F1117" }}>{t.value}%</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "#1C2B1C" }}>{t.value}%</span>
                   </div>
                 ))}
               </div>
@@ -146,11 +146,11 @@ export default function Analytics({ tickets }) {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <div style={{ width: 26, height: 26, borderRadius: "50%", background: m.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 800 }}>{m.name[0]}</div>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: "#0F1117" }}>{m.name}</span>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: "#1C2B1C" }}>{m.name}</span>
                   </div>
-                  <span style={{ fontSize: 13, color: "#9CA3AF" }}>{m.resolved} resolved · <span style={{ color: "#EF4444" }}>{m.open} open</span></span>
+                  <span style={{ fontSize: 13, color: "#8A9E8A" }}>{m.resolved} resolved · <span style={{ color: "#EF4444" }}>{m.open} open</span></span>
                 </div>
-                <div style={{ height: 7, background: "#F3F4F6", borderRadius: 10, overflow: "hidden" }}>
+                <div style={{ height: 7, background: "#F0EDE6", borderRadius: 10, overflow: "hidden" }}>
                   <div style={{ height: "100%", width: `${(m.resolved / m.max) * 100}%`, background: `linear-gradient(90deg, ${m.color}, ${m.color}bb)`, borderRadius: 10, transition: "width 0.6s ease" }} />
                 </div>
               </div>

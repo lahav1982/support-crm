@@ -286,7 +286,7 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
   }
 
   const linkedTicketId = getLinkedTicketId(selected);
-  const tag = selected ? TAG_COLORS[selected.tag] || { bg: "#F3F4F6", text: "#6B7280", dot: "#9CA3AF" } : null;
+  const tag = selected ? TAG_COLORS[selected.tag] || { bg: "#F0EDE6", text: "#6B7D6B", dot: "#8A9E8A" } : null;
   const pri = selected ? PRIORITY_COLORS[selected.priority] || {} : null;
 
   return (
@@ -299,8 +299,8 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
             <button key={t} onClick={() => setTab(t)} style={{
               flex: 1, padding: "7px 0", fontSize: 13, border: "none", borderRadius: 7, cursor: "pointer",
               fontWeight: tab === t ? 700 : 500,
-              color: tab === t ? "#6366F1" : "#9CA3AF",
-              background: tab === t ? "#F0EFFE" : "transparent",
+              color: tab === t ? "#3D6B3D" : "#8A9E8A",
+              background: tab === t ? "#EAF0EA" : "transparent",
               textTransform: "capitalize",
             }}>{t}</button>
           ))}
@@ -310,25 +310,25 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
         <div style={{ padding: "8px 10px 6px", borderBottom: "1px solid #F3F4F6", display: "flex", alignItems: "center", gap: 6 }}>
           {gmailStatus?.connected ? (
             <>
-              <span style={{ width: 7, height: 7, background: "#22C55E", borderRadius: "50%", flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: "#6B7280", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{gmailStatus.email}</span>
-              <button onClick={handleSync} disabled={syncing} style={{ display: "flex", alignItems: "center", gap: 4, background: syncing ? "#F3F4F6" : "#F0EFFE", color: syncing ? "#9CA3AF" : "#6366F1", border: "none", borderRadius: 6, padding: "4px 9px", fontSize: 12, fontWeight: 700, cursor: syncing ? "not-allowed" : "pointer", flexShrink: 0 }}>
+              <span style={{ width: 7, height: 7, background: "#5E9B5E", borderRadius: "50%", flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: "#6B7D6B", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{gmailStatus.email}</span>
+              <button onClick={handleSync} disabled={syncing} style={{ display: "flex", alignItems: "center", gap: 4, background: syncing ? "#F0EDE6" : "#EAF0EA", color: syncing ? "#8A9E8A" : "#3D6B3D", border: "none", borderRadius: 6, padding: "4px 9px", fontSize: 12, fontWeight: 700, cursor: syncing ? "not-allowed" : "pointer", flexShrink: 0 }}>
                 {syncing ? <><SmallSpinner />&nbsp;Syncing…</> : <>↻ Sync</>}
               </button>
             </>
           ) : (
             <>
-              <span style={{ width: 7, height: 7, background: "#E5E7EB", borderRadius: "50%", flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: "#9CA3AF", flex: 1 }}>Gmail not connected</span>
-              <button onClick={() => onNavigate("settings")} style={{ background: "none", border: "none", fontSize: 12, color: "#6366F1", fontWeight: 700, cursor: "pointer", padding: 0, flexShrink: 0 }}>Connect →</button>
+              <span style={{ width: 7, height: 7, background: "#DDD8CF", borderRadius: "50%", flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: "#8A9E8A", flex: 1 }}>Gmail not connected</span>
+              <button onClick={() => onNavigate("settings")} style={{ background: "none", border: "none", fontSize: 12, color: "#3D6B3D", fontWeight: 700, cursor: "pointer", padding: 0, flexShrink: 0 }}>Connect →</button>
             </>
           )}
         </div>
         {syncResult && (
-          <div style={{ margin: "5px 8px 0", padding: "8px 10px", borderRadius: 7, fontSize: 12, background: syncResult.ok ? "#F0FDF4" : "#FEF2F2", border: "1px solid " + (syncResult.ok ? "#BBF7D0" : "#FECACA") }}>
+          <div style={{ margin: "5px 8px 0", padding: "8px 10px", borderRadius: 7, fontSize: 12, background: syncResult.ok ? "#EAF0EA" : "#FEF2F2", border: "1px solid " + (syncResult.ok ? "#C5D9C5" : "#FECACA") }}>
             {syncResult.ok ? (
               <div>
-                <div style={{ fontWeight: 700, color: "#16A34A", marginBottom: 3 }}>
+                <div style={{ fontWeight: 700, color: "#3D6B3D", marginBottom: 3 }}>
                   {(syncResult.count > 0 || syncResult.threadReplies > 0)
                     ? "✓ " + [
                         syncResult.count > 0 && syncResult.count + " new email" + (syncResult.count > 1 ? "s" : ""),
@@ -337,7 +337,7 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
                     : "✓ Inbox up to date"}
                 </div>
                 {(syncResult.rejected > 0 || syncResult.skipped > 0) && (
-                  <div style={{ color: "#6B7280", fontSize: 11, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ color: "#6B7D6B", fontSize: 11, display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {syncResult.rejected > 0 && <span>🤖 {syncResult.rejected} filtered by AI</span>}
                     {syncResult.skipped  > 0 && <span>· {syncResult.skipped} already synced</span>}
                   </div>
@@ -351,7 +351,7 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
             )}
           </div>
         )}
-        <div style={{ padding: "6px 12px 4px", fontSize: 12, color: "#9CA3AF", fontWeight: 600 }}>
+        <div style={{ padding: "6px 12px 4px", fontSize: 12, color: "#8A9E8A", fontWeight: 600 }}>
           {filtered.length} email{filtered.length !== 1 ? "s" : ""}
         </div>
 
@@ -359,7 +359,7 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
         {selected_ids.size > 0 && (
           <div style={{ margin: "4px 8px", padding: "8px 12px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: "#DC2626", flex: 1 }}>{selected_ids.size} selected</span>
-            <button onClick={() => setSelectedIds(new Set())} style={{ background: "none", border: "none", fontSize: 12, color: "#6B7280", cursor: "pointer", fontWeight: 600, padding: "2px 6px" }}>Cancel</button>
+            <button onClick={() => setSelectedIds(new Set())} style={{ background: "none", border: "none", fontSize: 12, color: "#6B7D6B", cursor: "pointer", fontWeight: 600, padding: "2px 6px" }}>Cancel</button>
             <button onClick={handleDelete} disabled={deleting} style={{ background: "#DC2626", color: "#fff", border: "none", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: deleting ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 5, opacity: deleting ? 0.7 : 1 }}>
               {deleting ? <><SmallSpinner color="#fff" />&nbsp;Deleting…</> : <>🗑 Delete {selected_ids.size}</>}
             </button>
@@ -370,7 +370,7 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
         {filtered.length > 0 && (
           <div style={{ padding: "4px 12px 2px", display: "flex", alignItems: "center", gap: 8 }}>
             <Checkbox checked={selected_ids.size === filtered.length && filtered.length > 0} onChange={toggleSelectAll} />
-            <span style={{ fontSize: 11, color: "#9CA3AF", cursor: "pointer" }} onClick={toggleSelectAll}>
+            <span style={{ fontSize: 11, color: "#8A9E8A", cursor: "pointer" }} onClick={toggleSelectAll}>
               {selected_ids.size === filtered.length && filtered.length > 0 ? "Deselect all" : "Select all"}
             </span>
           </div>
@@ -378,11 +378,11 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
 
         <div style={{ overflowY: "auto", flex: 1, padding: "0 8px 8px" }}>
           {filtered.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "40px 16px", color: "#9CA3AF", fontSize: 15 }}>
+            <div style={{ textAlign: "center", padding: "40px 16px", color: "#8A9E8A", fontSize: 15 }}>
               No {tab === "all" ? "" : tab} emails
             </div>
           ) : filtered.map(email => {
-            const tc = TAG_COLORS[email.tag] || { bg: "#F3F4F6", text: "#6B7280", dot: "#9CA3AF" };
+            const tc = TAG_COLORS[email.tag] || { bg: "#F0EDE6", text: "#6B7D6B", dot: "#8A9E8A" };
             const isActive = selected?.id === email.id;
             const hasLinked = getLinkedTicketId(email) !== null;
             return (
@@ -396,13 +396,13 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
                 border: isActive ? "1.5px solid #DDD6FE" : selected_ids.has(email.id) ? "1.5px solid #FECACA" : "1.5px solid transparent",
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                  <span style={{ fontWeight: 700, fontSize: 14.5, color: "#0F1117" }}>{email.customerName}</span>
-                  <span style={{ fontSize: 12, color: "#9CA3AF" }}>{email.time}</span>
+                  <span style={{ fontWeight: 700, fontSize: 14.5, color: "#1C2B1C" }}>{email.customerName}</span>
+                  <span style={{ fontSize: 12, color: "#8A9E8A" }}>{email.time}</span>
                 </div>
-                <div style={{ fontSize: 14, color: "#374151", fontWeight: 600, marginBottom: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <div style={{ fontSize: 14, color: "#3A4E3A", fontWeight: 600, marginBottom: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {email.subject}
                 </div>
-                <div style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 7, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <div style={{ fontSize: 13, color: "#8A9E8A", marginBottom: 7, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {email.body.slice(0, 55)}…
                 </div>
                 <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
@@ -411,7 +411,7 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
                   </span>
                   <span style={{ background: PRIORITY_COLORS[email.priority]?.bg, color: PRIORITY_COLORS[email.priority]?.text, fontSize: 12, fontWeight: 600, borderRadius: 6, padding: "2px 7px" }}>{email.priority}</span>
                   {email.status === "resolved" && (
-                    <span style={{ background: "#F0FDF4", color: "#16A34A", fontSize: 12, fontWeight: 600, borderRadius: 6, padding: "2px 7px" }}>✓ resolved</span>
+                    <span style={{ background: "#EAF0EA", color: "#3D6B3D", fontSize: 12, fontWeight: 600, borderRadius: 6, padding: "2px 7px" }}>✓ resolved</span>
                   )}
                   {/* Ticket flag badge */}
                   {hasLinked && (
@@ -430,27 +430,27 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
       {/* ── Main view ── */}
       {selected ? (
         <>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#F5F6FA" }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#F7F5F0" }}>
 
             {/* Header */}
             <div style={{ background: "#fff", padding: "16px 24px", borderBottom: "1px solid #EAECF0", flexShrink: 0 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div>
-                  <h2 style={{ fontSize: 17, fontWeight: 800, color: "#0F1117", marginBottom: 7, letterSpacing: "-0.3px" }}>
+                  <h2 style={{ fontSize: 17, fontWeight: 800, color: "#1C2B1C", marginBottom: 7, letterSpacing: "-0.3px" }}>
                     {selected.subject}
                   </h2>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg,#6366F1,#8B5CF6)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 13 }}>
                       {selected.customerName?.[0]}
                     </div>
-                    <span style={{ fontSize: 15, fontWeight: 600, color: "#374151" }}>{selected.customerName}</span>
-                    <span style={{ fontSize: 14, color: "#9CA3AF" }}>{selected.customerEmail}</span>
+                    <span style={{ fontSize: 15, fontWeight: 600, color: "#3A4E3A" }}>{selected.customerName}</span>
+                    <span style={{ fontSize: 14, color: "#8A9E8A" }}>{selected.customerEmail}</span>
                     <span style={{ color: "#D1D5DB" }}>·</span>
-                    <span style={{ fontSize: 13, color: "#9CA3AF" }}>{selected.date}</span>
+                    <span style={{ fontSize: 13, color: "#8A9E8A" }}>{selected.date}</span>
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  {saving && <span style={{ fontSize: 13, color: "#9CA3AF" }}>Saving…</span>}
+                  {saving && <span style={{ fontSize: 13, color: "#8A9E8A" }}>Saving…</span>}
                   <span style={{ background: tag.bg, color: tag.text, fontSize: 13, fontWeight: 600, borderRadius: 7, padding: "4px 10px" }}>{selected.tag}</span>
                   <span style={{ background: pri.bg, color: pri.text, fontSize: 13, fontWeight: 600, borderRadius: 7, padding: "4px 10px", textTransform: "capitalize" }}>{selected.priority}</span>
                 </div>
@@ -473,7 +473,7 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
 
             {/* Email body */}
             <div style={{ padding: "18px 24px", background: "#fff", borderBottom: "1px solid #EAECF0", maxHeight: 150, overflowY: "auto", flexShrink: 0 }}>
-              <p style={{ margin: 0, fontSize: 15.5, color: "#374151", lineHeight: 1.75 }}>{selected.body}</p>
+              <p style={{ margin: 0, fontSize: 15.5, color: "#3A4E3A", lineHeight: 1.75 }}>{selected.body}</p>
             </div>
 
             {/* Previous replies */}
@@ -481,10 +481,10 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
               <div style={{ padding: "12px 24px", borderBottom: "1px solid #EAECF0", background: "#FAFAFA", maxHeight: 200, overflowY: "auto", flexShrink: 0 }}>
                 {selected.replies.map((r, i) => (
                   <div key={i} style={{ background: "#fff", borderRadius: 10, padding: "11px 14px", marginBottom: 6, borderLeft: "3px solid #6366F1", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-                    <div style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 4 }}>
-                      <span style={{ color: "#6366F1", fontWeight: 700 }}>{r.author}</span> replied
+                    <div style={{ fontSize: 13, color: "#8A9E8A", marginBottom: 4 }}>
+                      <span style={{ color: "#3D6B3D", fontWeight: 700 }}>{r.author}</span> replied
                     </div>
-                    <p style={{ margin: 0, fontSize: 15, color: "#374151", lineHeight: 1.65 }}>{r.body}</p>
+                    <p style={{ margin: 0, fontSize: 15, color: "#3A4E3A", lineHeight: 1.65 }}>{r.body}</p>
                   </div>
                 ))}
               </div>
@@ -493,10 +493,10 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
             {/* Reply box */}
             <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "16px 24px", overflow: "auto" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.06em" }}>Write Reply</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#3A4E3A", textTransform: "uppercase", letterSpacing: "0.06em" }}>Write Reply</span>
                 <button onClick={handleGenerate} disabled={aiLoading} style={{
-                  background: aiLoading ? "#E5E7EB" : "linear-gradient(135deg,#6366F1,#8B5CF6)",
-                  color: aiLoading ? "#9CA3AF" : "#fff",
+                  background: aiLoading ? "#DDD8CF" : "linear-gradient(135deg,#6366F1,#8B5CF6)",
+                  color: aiLoading ? "#8A9E8A" : "#fff",
                   border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 14, fontWeight: 700,
                   cursor: aiLoading ? "not-allowed" : "pointer",
                   display: "flex", alignItems: "center", gap: 6,
@@ -509,7 +509,7 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
               </div>
 
               {replySent && (
-                <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 8, padding: "8px 14px", marginBottom: 10, fontSize: 14, color: "#16A34A", fontWeight: 600 }}>
+                <div style={{ background: "#EAF0EA", border: "1px solid #BBF7D0", borderRadius: 8, padding: "8px 14px", marginBottom: 10, fontSize: 14, color: "#3D6B3D", fontWeight: 600 }}>
                   ✓ Reply saved
                 </div>
               )}
@@ -524,23 +524,23 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
                 value={draft}
                 onChange={e => setDraft(e.target.value)}
                 placeholder="Generate an AI reply or type your own…"
-                style={{ flex: 1, minHeight: 120, resize: "none", border: "1.5px solid #E5E7EB", borderRadius: 10, padding: "12px 14px", fontSize: 15.5, color: "#0F1117", background: "#fff", outline: "none", lineHeight: 1.7, fontFamily: "inherit" }}
-                onFocus={e => e.target.style.borderColor = "#6366F1"}
-                onBlur={e => e.target.style.borderColor = "#E5E7EB"}
+                style={{ flex: 1, minHeight: 120, resize: "none", border: "1.5px solid #E5E7EB", borderRadius: 10, padding: "12px 14px", fontSize: 15.5, color: "#1C2B1C", background: "#fff", outline: "none", lineHeight: 1.7, fontFamily: "inherit" }}
+                onFocus={e => e.target.style.borderColor = "#3D6B3D"}
+                onBlur={e => e.target.style.borderColor = "#DDD8CF"}
               />
 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
                 {/* Left: Convert to Ticket */}
                 <button onClick={handleConvert} disabled={converting} style={{
                   display: "flex", alignItems: "center", gap: 7,
-                  background: linkedTicketId ? "#EFF6FF" : (converting ? "#F3F4F6" : "#fff"),
-                  color: linkedTicketId ? "#3B82F6" : (converting ? "#9CA3AF" : "#6366F1"),
-                  border: `1.5px solid ${linkedTicketId ? "#BFDBFE" : (converting ? "#E5E7EB" : "#DDD6FE")}`,
+                  background: linkedTicketId ? "#EFF6FF" : (converting ? "#F0EDE6" : "#fff"),
+                  color: linkedTicketId ? "#3B82F6" : (converting ? "#8A9E8A" : "#3D6B3D"),
+                  border: `1.5px solid ${linkedTicketId ? "#BFDBFE" : (converting ? "#DDD8CF" : "#C5D9C5")}`,
                   borderRadius: 9, padding: "8px 16px", fontSize: 14, fontWeight: 700,
                   cursor: converting ? "not-allowed" : "pointer",
                 }}>
                   {converting
-                    ? <><Spinner color="#9CA3AF" />Creating ticket…</>
+                    ? <><Spinner color="#8A9E8A" />Creating ticket…</>
                     : linkedTicketId
                       ? <>🎫 View Ticket #{linkedTicketId}</>
                       : <><TicketIcon />Convert to Ticket</>}
@@ -548,21 +548,21 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
 
                 {/* Right: reply buttons */}
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => setDraft("")} disabled={!draft.trim()} style={{ background: "#fff", border: "1.5px solid #E5E7EB", borderRadius: 8, padding: "8px 14px", fontSize: 14, fontWeight: 600, color: "#6B7280", cursor: draft.trim() ? "pointer" : "not-allowed", opacity: draft.trim() ? 1 : 0.45 }}>
+                  <button onClick={() => setDraft("")} disabled={!draft.trim()} style={{ background: "#fff", border: "1.5px solid #E5E7EB", borderRadius: 8, padding: "8px 14px", fontSize: 14, fontWeight: 600, color: "#6B7D6B", cursor: draft.trim() ? "pointer" : "not-allowed", opacity: draft.trim() ? 1 : 0.45 }}>
                     Clear
                   </button>
                   <button onClick={handleSendReply} disabled={!draft.trim() || saving} style={{
-                    background: draft.trim() ? "#fff" : "#F9FAFB",
-                    color: draft.trim() ? "#6366F1" : "#9CA3AF",
-                    border: `1.5px solid ${draft.trim() ? "#DDD6FE" : "#E5E7EB"}`,
+                    background: draft.trim() ? "#fff" : "#FAFAF7",
+                    color: draft.trim() ? "#3D6B3D" : "#8A9E8A",
+                    border: `1.5px solid ${draft.trim() ? "#C5D9C5" : "#DDD8CF"}`,
                     borderRadius: 8, padding: "8px 16px", fontSize: 14, fontWeight: 700,
                     cursor: draft.trim() ? "pointer" : "not-allowed",
                   }}>
                     {saving ? "Saving…" : "Send Reply"}
                   </button>
                   <button onClick={handleSendAndResolve} disabled={!draft.trim() || saving} style={{
-                    background: draft.trim() ? "#0F1117" : "#E5E7EB",
-                    color: draft.trim() ? "#fff" : "#9CA3AF",
+                    background: draft.trim() ? "#1C2B1C" : "#DDD8CF",
+                    color: draft.trim() ? "#fff" : "#8A9E8A",
                     border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 14, fontWeight: 700,
                     cursor: draft.trim() ? "pointer" : "not-allowed",
                   }}>
@@ -576,7 +576,7 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
           {/* ── Side panel ── */}
           <div style={{ width: 240, background: "#fff", borderLeft: "1px solid #EAECF0", padding: 18, overflowY: "auto", display: "flex", flexDirection: "column", gap: 22 }}>
             <Meta label="Assigned To">
-              <select value={selected.assignedTo} onChange={e => handleAssign(e.target.value)} style={{ width: "100%", background: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 8, color: "#0F1117", padding: "8px 10px", fontSize: 14, fontWeight: 600, outline: "none", cursor: "pointer" }}>
+              <select value={selected.assignedTo} onChange={e => handleAssign(e.target.value)} style={{ width: "100%", background: "#FAFAF7", border: "1.5px solid #E5E7EB", borderRadius: 8, color: "#1C2B1C", padding: "8px 10px", fontSize: 14, fontWeight: 600, outline: "none", cursor: "pointer" }}>
                 {TEAM.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
             </Meta>
@@ -588,7 +588,7 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
                     flex: 1, padding: "6px 0", fontSize: 12, fontWeight: 700, borderRadius: 7, cursor: "pointer", textTransform: "capitalize",
                     border: selected.priority === p ? "none" : "1.5px solid #E5E7EB",
                     background: selected.priority === p ? PRIORITY_COLORS[p].bg : "#fff",
-                    color: selected.priority === p ? PRIORITY_COLORS[p].text : "#9CA3AF",
+                    color: selected.priority === p ? PRIORITY_COLORS[p].text : "#8A9E8A",
                   }}>{p}</button>
                 ))}
               </div>
@@ -604,8 +604,8 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
                     setSelected(updated);
                   }} style={{
                     flex: 1, padding: "7px 0", fontSize: 13, fontWeight: 700, borderRadius: 7, border: "none", cursor: "pointer", textTransform: "capitalize",
-                    background: selected.status === s ? (s === "resolved" ? "#F0FDF4" : "#FEF2F2") : "#F9FAFB",
-                    color: selected.status === s ? (s === "resolved" ? "#16A34A" : "#EF4444") : "#9CA3AF",
+                    background: selected.status === s ? (s === "resolved" ? "#EAF0EA" : "#FEF2F2") : "#FAFAF7",
+                    color: selected.status === s ? (s === "resolved" ? "#3D6B3D" : "#EF4444") : "#8A9E8A",
                   }}>{s}</button>
                 ))}
               </div>
@@ -619,22 +619,22 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
                 )}
                 onBlur={handleNoteBlur}
                 placeholder="Private note — saved on click away…"
-                style={{ width: "100%", minHeight: 88, resize: "none", background: "#FFFBEB", border: "1.5px solid #FDE68A", borderRadius: 8, color: "#374151", padding: "10px", fontSize: 14, outline: "none", fontFamily: "inherit", lineHeight: 1.5 }}
+                style={{ width: "100%", minHeight: 88, resize: "none", background: "#FFFBEB", border: "1.5px solid #FDE68A", borderRadius: 8, color: "#3A4E3A", padding: "10px", fontSize: 14, outline: "none", fontFamily: "inherit", lineHeight: 1.5 }}
               />
             </Meta>
 
             <Meta label="Customer">
-              <div style={{ background: "#F9FAFB", borderRadius: 9, padding: 12, border: "1px solid #EAECF0" }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#0F1117", marginBottom: 2 }}>{selected.customerName}</div>
-                <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 6 }}>{selected.customerEmail}</div>
-                <div style={{ fontSize: 13, color: "#6B7280" }}>Category: <span style={{ color: tag.text, fontWeight: 600 }}>{selected.tag}</span></div>
+              <div style={{ background: "#FAFAF7", borderRadius: 9, padding: 12, border: "1px solid #EAECF0" }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#1C2B1C", marginBottom: 2 }}>{selected.customerName}</div>
+                <div style={{ fontSize: 13, color: "#6B7D6B", marginBottom: 6 }}>{selected.customerEmail}</div>
+                <div style={{ fontSize: 13, color: "#6B7D6B" }}>Category: <span style={{ color: tag.text, fontWeight: 600 }}>{selected.tag}</span></div>
               </div>
             </Meta>
           </div>
         </>
       ) : (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "#9CA3AF" }}>
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#E5E7EB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, color: "#8A9E8A" }}>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#DDD8CF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           <span style={{ fontSize: 15 }}>Select an email to get started</span>
         </div>
       )}
@@ -645,26 +645,26 @@ export default function Inbox({ tickets, setTickets, businessContext, onNavigate
 function Meta({ label, children }) {
   return (
     <div>
-      <div style={{ fontSize: 12, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>{label}</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#8A9E8A", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>{label}</div>
       {children}
     </div>
   );
 }
 
-function Spinner({ color = "#6366F1" }) {
+function Spinner({ color = "#3D6B3D" }) {
   return (
     <span style={{ width: 11, height: 11, border: `2px solid #E5E7EB`, borderTopColor: color, borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />
   );
 }
 
 function SmallSpinner({ color }) {
-  var top = color || "#6366F1";
+  var top = color || "#3D6B3D";
   return <span style={{ width: 10, height: 10, border: "1.5px solid #E5E7EB", borderTopColor: top, borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />;
 }
 
 function Checkbox({ checked, onChange }) {
   return (
-    <div onClick={onChange} style={{ width: 16, height: 16, borderRadius: 4, border: checked ? "none" : "1.5px solid #D1D5DB", background: checked ? "#6366F1" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, transition: "all 0.1s" }}>
+    <div onClick={onChange} style={{ width: 16, height: 16, borderRadius: 4, border: checked ? "none" : "1.5px solid #D1D5DB", background: checked ? "#3D6B3D" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, transition: "all 0.1s" }}>
       {checked && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
     </div>
   );

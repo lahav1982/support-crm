@@ -4,28 +4,28 @@ const SEVERITY_CONFIG = {
   critical: { color: "#DC2626", bg: "#FEF2F2", border: "#FECACA", dot: "#DC2626", label: "Critical" },
   high:     { color: "#EA580C", bg: "#FFF7ED", border: "#FED7AA", dot: "#EA580C", label: "High"     },
   medium:   { color: "#D97706", bg: "#FFFBEB", border: "#FDE68A", dot: "#D97706", label: "Medium"   },
-  low:      { color: "#16A34A", bg: "#F0FDF4", border: "#BBF7D0", dot: "#22C55E", label: "Low"      },
+  low:      { color: "#3D6B3D", bg: "#EAF0EA", border: "#C5D9C5", dot: "#5E9B5E", label: "Low"      },
 };
 
 const URGENCY_CONFIG = {
   "immediate":   { label: "Immediate action",  color: "#DC2626", bg: "#FEF2F2" },
   "this-week":   { label: "This week",          color: "#EA580C", bg: "#FFF7ED" },
   "this-month":  { label: "This month",         color: "#D97706", bg: "#FFFBEB" },
-  "monitor":     { label: "Monitor",            color: "#6B7280", bg: "#F3F4F6" },
+  "monitor":     { label: "Monitor",            color: "#6B7D6B", bg: "#F0EDE6" },
 };
 
 const SENTIMENT_CONFIG = {
   very_negative: { label: "Very Negative", color: "#DC2626", icon: "😡" },
   negative:      { label: "Negative",      color: "#EA580C", icon: "😞" },
   mixed:         { label: "Mixed",         color: "#D97706", icon: "😐" },
-  neutral:       { label: "Neutral",       color: "#6B7280", icon: "😶" },
-  positive:      { label: "Positive",      color: "#16A34A", icon: "😊" },
+  neutral:       { label: "Neutral",       color: "#6B7D6B", icon: "😶" },
+  positive:      { label: "Positive",      color: "#3D6B3D", icon: "😊" },
 };
 
 const TREND_CONFIG = {
   rising:   { icon: "↑", color: "#DC2626", label: "Rising" },
-  stable:   { icon: "→", color: "#6B7280", label: "Stable" },
-  declining:{ icon: "↓", color: "#16A34A", label: "Declining" },
+  stable:   { icon: "→", color: "#6B7D6B", label: "Stable" },
+  declining:{ icon: "↓", color: "#3D6B3D", label: "Declining" },
 };
 
 const AREA_ICONS = {
@@ -87,11 +87,11 @@ export default function Insights({ tickets, onNavigate }) {
   const uniqueAreas = [...new Set(issues.map(i => i.affectedArea).filter(Boolean))];
 
   const healthScore = summary.healthScore ?? null;
-  const healthColor = healthScore >= 75 ? "#16A34A" : healthScore >= 50 ? "#D97706" : "#DC2626";
+  const healthColor = healthScore >= 75 ? "#3D6B3D" : healthScore >= 50 ? "#D97706" : "#DC2626";
   const healthLabel = healthScore >= 75 ? "Good" : healthScore >= 50 ? "Needs Attention" : "At Risk";
 
   return (
-    <div style={{ height: "100%", overflowY: "auto", background: "#F5F6FA", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ height: "100%", overflowY: "auto", background: "#F7F5F0", fontFamily: "'DM Sans', sans-serif" }}>
       <style>{`
         @keyframes pulse-ring { 0% { transform: scale(0.95); opacity: 1; } 100% { transform: scale(1.15); opacity: 0; } }
         @keyframes fadeSlideUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
@@ -109,13 +109,13 @@ export default function Insights({ tickets, onNavigate }) {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
               <span style={{ fontSize: 24 }}>🔬</span>
-              <h1 style={{ fontSize: 22, fontWeight: 800, color: "#0F1117", margin: 0, letterSpacing: "-0.5px" }}>Issue Intelligence</h1>
+              <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1C2B1C", margin: 0, letterSpacing: "-0.5px" }}>Issue Intelligence</h1>
             </div>
-            <p style={{ fontSize: 14, color: "#6B7280", margin: 0, lineHeight: 1.5 }}>
+            <p style={{ fontSize: 14, color: "#6B7D6B", margin: 0, lineHeight: 1.5 }}>
               AI-powered analysis of all customer messages · identifies patterns, risks, and opportunities
             </p>
             {lastRun && (
-              <p style={{ fontSize: 12, color: "#9CA3AF", margin: "4px 0 0" }}>
+              <p style={{ fontSize: 12, color: "#8A9E8A", margin: "4px 0 0" }}>
                 Last analyzed: {new Date(lastRun).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{data?.meta?.source === "cron" ? " · ⏰ auto-synced" : ""}
                 {data?.meta?.analyzedCount && ` · ${data.meta.analyzedCount} messages`}
               </p>
@@ -127,8 +127,8 @@ export default function Insights({ tickets, onNavigate }) {
             disabled={loading}
             style={{
               display: "flex", alignItems: "center", gap: 8,
-              background: loading ? "#F3F4F6" : "linear-gradient(135deg, #6366F1, #8B5CF6)",
-              color: loading ? "#9CA3AF" : "#fff",
+              background: loading ? "#F0EDE6" : "linear-gradient(135deg, #6366F1, #8B5CF6)",
+              color: loading ? "#8A9E8A" : "#fff",
               border: "none", borderRadius: 12, padding: "12px 22px",
               fontSize: 14, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
               boxShadow: loading ? "none" : "0 4px 14px rgba(99,102,241,0.35)",
@@ -136,7 +136,7 @@ export default function Insights({ tickets, onNavigate }) {
             }}
           >
             {loading
-              ? <><span style={{ width: 14, height: 14, border: "2px solid #D1D5DB", borderTopColor: "#6366F1", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} /> Analyzing…</>
+              ? <><span style={{ width: 14, height: 14, border: "2px solid #D1D5DB", borderTopColor: "#3D6B3D", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} /> Analyzing…</>
               : <>{data ? "↻ Re-analyze" : "✦ Run Analysis"}</>
             }
           </button>
@@ -153,14 +153,14 @@ export default function Insights({ tickets, onNavigate }) {
         {!loading && !data && !error && (
           <div style={{ textAlign: "center", padding: "80px 20px", animation: "fadeSlideUp 0.4s ease" }}>
             <div style={{ fontSize: 56, marginBottom: 16 }}>🧠</div>
-            <h2 style={{ fontSize: 20, fontWeight: 800, color: "#0F1117", margin: "0 0 8px" }}>No insights yet</h2>
-            <p style={{ fontSize: 15, color: "#6B7280", maxWidth: 420, margin: "0 auto 24px", lineHeight: 1.6 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: "#1C2B1C", margin: "0 0 8px" }}>No insights yet</h2>
+            <p style={{ fontSize: 15, color: "#6B7D6B", maxWidth: 420, margin: "0 auto 24px", lineHeight: 1.6 }}>
               Click <strong>Run Analysis</strong> to have AI scan all your inbox messages and tickets, then surface the top issues, patterns, and product insights.
             </p>
             {tickets.length === 0 && (
-              <p style={{ fontSize: 13, color: "#9CA3AF" }}>
+              <p style={{ fontSize: 13, color: "#8A9E8A" }}>
                 You don't have any messages yet.{" "}
-                <button onClick={() => onNavigate("inbox")} style={{ background: "none", border: "none", color: "#6366F1", fontWeight: 700, cursor: "pointer", fontSize: 13, padding: 0 }}>
+                <button onClick={() => onNavigate("inbox")} style={{ background: "none", border: "none", color: "#3D6B3D", fontWeight: 700, cursor: "pointer", fontSize: 13, padding: 0 }}>
                   Go to Inbox →
                 </button>
               </p>
@@ -173,17 +173,17 @@ export default function Insights({ tickets, onNavigate }) {
           <div style={{ animation: "fadeSlideUp 0.3s ease" }}>
             <div style={{ background: "#fff", borderRadius: 16, padding: 24, marginBottom: 20, border: "1px solid #EAECF0" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-                <div style={{ width: 40, height: 40, background: "#F3F4F6", borderRadius: 10 }} />
+                <div style={{ width: 40, height: 40, background: "#F0EDE6", borderRadius: 10 }} />
                 <div>
-                  <div style={{ width: 200, height: 14, background: "#F3F4F6", borderRadius: 4, marginBottom: 6 }} />
-                  <div style={{ width: 140, height: 11, background: "#F9FAFB", borderRadius: 4 }} />
+                  <div style={{ width: 200, height: 14, background: "#F0EDE6", borderRadius: 4, marginBottom: 6 }} />
+                  <div style={{ width: 140, height: 11, background: "#FAFAF7", borderRadius: 4 }} />
                 </div>
               </div>
               <div style={{ display: "flex", gap: 12 }}>
-                {[1,2,3,4].map(i => <div key={i} style={{ flex: 1, height: 70, background: "#F9FAFB", borderRadius: 10 }} />)}
+                {[1,2,3,4].map(i => <div key={i} style={{ flex: 1, height: 70, background: "#FAFAF7", borderRadius: 10 }} />)}
               </div>
             </div>
-            <div style={{ textAlign: "center", padding: "20px 0", fontSize: 14, color: "#9CA3AF", fontWeight: 600 }}>
+            <div style={{ textAlign: "center", padding: "20px 0", fontSize: 14, color: "#8A9E8A", fontWeight: 600 }}>
               🤖 AI is reading all your customer messages…
             </div>
           </div>
@@ -198,12 +198,12 @@ export default function Insights({ tickets, onNavigate }) {
 
               {/* Health score */}
               <div style={{ background: "#fff", borderRadius: 14, padding: "18px 20px", border: "1px solid #EAECF0", gridColumn: "span 1" }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>Health Score</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#8A9E8A", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>Health Score</div>
                 <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
                   <span style={{ fontSize: 36, fontWeight: 800, color: healthColor, lineHeight: 1 }}>{healthScore ?? "–"}</span>
-                  <span style={{ fontSize: 13, color: "#9CA3AF", paddingBottom: 4 }}>/100</span>
+                  <span style={{ fontSize: 13, color: "#8A9E8A", paddingBottom: 4 }}>/100</span>
                 </div>
-                <div style={{ marginTop: 10, height: 5, background: "#F3F4F6", borderRadius: 99 }}>
+                <div style={{ marginTop: 10, height: 5, background: "#F0EDE6", borderRadius: 99 }}>
                   <div style={{ height: "100%", width: (healthScore || 0) + "%", background: healthColor, borderRadius: 99, transition: "width 1s ease" }} />
                 </div>
                 <div style={{ marginTop: 6, fontSize: 12, fontWeight: 700, color: healthColor }}>{healthLabel}</div>
@@ -211,9 +211,9 @@ export default function Insights({ tickets, onNavigate }) {
 
               {/* Overall sentiment */}
               <div style={{ background: "#fff", borderRadius: 14, padding: "18px 20px", border: "1px solid #EAECF0" }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>Sentiment</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#8A9E8A", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>Sentiment</div>
                 <div style={{ fontSize: 28, marginBottom: 6 }}>{SENTIMENT_CONFIG[summary.overallSentiment]?.icon || "😐"}</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: SENTIMENT_CONFIG[summary.overallSentiment]?.color || "#6B7280" }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: SENTIMENT_CONFIG[summary.overallSentiment]?.color || "#6B7D6B" }}>
                   {SENTIMENT_CONFIG[summary.overallSentiment]?.label || "–"}
                 </div>
               </div>
@@ -227,8 +227,8 @@ export default function Insights({ tickets, onNavigate }) {
               </div>
 
               {/* Key win */}
-              <div style={{ background: "#F0FDF4", borderRadius: 14, padding: "18px 20px", border: "1px solid #BBF7D0" }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#16A34A", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>✓ What's Working</div>
+              <div style={{ background: "#EAF0EA", borderRadius: 14, padding: "18px 20px", border: "1px solid #BBF7D0" }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#3D6B3D", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>✓ What's Working</div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: "#14532D", lineHeight: 1.5 }}>
                   {summary.keyWin || "–"}
                 </div>
@@ -242,8 +242,8 @@ export default function Insights({ tickets, onNavigate }) {
                   <span style={{ fontSize: 16 }}>✦</span>
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#6366F1", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.05em" }}>Executive Summary</div>
-                  <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, margin: 0 }}>{summary.executiveSummary}</p>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#3D6B3D", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.05em" }}>Executive Summary</div>
+                  <p style={{ fontSize: 14, color: "#3A4E3A", lineHeight: 1.7, margin: 0 }}>{summary.executiveSummary}</p>
                 </div>
               </div>
             )}
@@ -251,8 +251,8 @@ export default function Insights({ tickets, onNavigate }) {
             {/* ── Issue list header + filters ── */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, gap: 12, flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <h2 style={{ fontSize: 16, fontWeight: 800, color: "#0F1117", margin: 0 }}>Top Issues</h2>
-                <span style={{ background: "#F0EFFE", color: "#6366F1", fontSize: 12, fontWeight: 700, borderRadius: 20, padding: "2px 10px" }}>{filteredIssues.length}</span>
+                <h2 style={{ fontSize: 16, fontWeight: 800, color: "#1C2B1C", margin: 0 }}>Top Issues</h2>
+                <span style={{ background: "#EAF0EA", color: "#3D6B3D", fontSize: 12, fontWeight: 700, borderRadius: 20, padding: "2px 10px" }}>{filteredIssues.length}</span>
               </div>
 
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -260,18 +260,18 @@ export default function Insights({ tickets, onNavigate }) {
                 {["all","critical","high","medium","low"].map(s => (
                   <button key={s} className="filter-btn" onClick={() => setFilterSeverity(s)} style={{
                     padding: "5px 12px", fontSize: 12, fontWeight: 600, borderRadius: 7, border: "1.5px solid",
-                    borderColor: filterSeverity === s ? "#6366F1" : "#E5E7EB",
-                    background: filterSeverity === s ? "#F0EFFE" : "#fff",
-                    color: filterSeverity === s ? "#6366F1" : "#6B7280",
+                    borderColor: filterSeverity === s ? "#3D6B3D" : "#DDD8CF",
+                    background: filterSeverity === s ? "#EAF0EA" : "#fff",
+                    color: filterSeverity === s ? "#3D6B3D" : "#6B7D6B",
                     cursor: "pointer", textTransform: "capitalize",
                   }}>{s === "all" ? "All severity" : s}</button>
                 ))}
                 {uniqueAreas.length > 0 && (
                   <select value={filterArea} onChange={e => setFilterArea(e.target.value)} style={{
                     padding: "5px 10px", fontSize: 12, fontWeight: 600, borderRadius: 7,
-                    border: "1.5px solid " + (filterArea !== "all" ? "#6366F1" : "#E5E7EB"),
-                    background: filterArea !== "all" ? "#F0EFFE" : "#fff",
-                    color: filterArea !== "all" ? "#6366F1" : "#6B7280",
+                    border: "1.5px solid " + (filterArea !== "all" ? "#3D6B3D" : "#DDD8CF"),
+                    background: filterArea !== "all" ? "#EAF0EA" : "#fff",
+                    color: filterArea !== "all" ? "#3D6B3D" : "#6B7D6B",
                     cursor: "pointer", outline: "none",
                   }}>
                     <option value="all">All areas</option>
@@ -283,7 +283,7 @@ export default function Insights({ tickets, onNavigate }) {
 
             {/* ── Issue cards ── */}
             {filteredIssues.length === 0 && (
-              <div style={{ textAlign: "center", padding: "40px", color: "#9CA3AF", fontSize: 14 }}>
+              <div style={{ textAlign: "center", padding: "40px", color: "#8A9E8A", fontSize: 14 }}>
                 No issues match the current filters
               </div>
             )}
@@ -305,7 +305,7 @@ export default function Insights({ tickets, onNavigate }) {
                       background: "#fff",
                       borderRadius: 14,
                       border: "1.5px solid",
-                      borderColor: isExpanded ? sev.border : "#EAECF0",
+                      borderColor: isExpanded ? sev.border : "#E5E0D5",
                       boxShadow: isExpanded ? "0 4px 20px rgba(0,0,0,0.07)" : "0 1px 3px rgba(0,0,0,0.03)",
                       overflow: "hidden",
                     }}
@@ -326,11 +326,11 @@ export default function Insights({ tickets, onNavigate }) {
                       {/* Main info */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
-                          <span style={{ fontSize: 16, fontWeight: 800, color: "#0F1117" }}>{issue.title}</span>
+                          <span style={{ fontSize: 16, fontWeight: 800, color: "#1C2B1C" }}>{issue.title}</span>
                           <span style={{ fontSize: 11, fontWeight: 700, background: sev.bg, color: sev.color, borderRadius: 6, padding: "2px 8px", border: "1px solid " + sev.border }}>{sev.label}</span>
                           <span style={{ fontSize: 11, fontWeight: 600, background: urg.bg, color: urg.color, borderRadius: 6, padding: "2px 8px" }}>{urg.label}</span>
                         </div>
-                        <p style={{ fontSize: 13.5, color: "#6B7280", margin: "0 0 10px", lineHeight: 1.55 }}>{issue.description}</p>
+                        <p style={{ fontSize: 13.5, color: "#6B7D6B", margin: "0 0 10px", lineHeight: 1.55 }}>{issue.description}</p>
                         <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
                           <Stat icon={areaIcon} label={issue.affectedArea || "Other"} />
                           <Stat icon={sent.icon} label={sent.label} color={sent.color} />
@@ -343,11 +343,11 @@ export default function Insights({ tickets, onNavigate }) {
                       {/* Volume bar */}
                       <div style={{ flexShrink: 0, width: 80, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
                         <div style={{ fontSize: 22, fontWeight: 800, color: sev.color, lineHeight: 1 }}>{issue.count}</div>
-                        <div style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 600 }}>reports</div>
-                        <div style={{ width: "100%", height: 4, background: "#F3F4F6", borderRadius: 99, marginTop: 4 }}>
+                        <div style={{ fontSize: 10, color: "#8A9E8A", fontWeight: 600 }}>reports</div>
+                        <div style={{ width: "100%", height: 4, background: "#F0EDE6", borderRadius: 99, marginTop: 4 }}>
                           <div style={{ height: "100%", width: Math.min(100, (issue.count / (issues[0]?.count || 1)) * 100) + "%", background: sev.dot, borderRadius: 99 }} />
                         </div>
-                        <div style={{ fontSize: 11, color: "#9CA3AF" }}>{isExpanded ? "▲ less" : "▼ more"}</div>
+                        <div style={{ fontSize: 11, color: "#8A9E8A" }}>{isExpanded ? "▲ less" : "▼ more"}</div>
                       </div>
                     </div>
 
@@ -359,12 +359,12 @@ export default function Insights({ tickets, onNavigate }) {
                         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                           {/* Customer impact */}
                           <DetailBlock icon="👥" title="Customer Impact">
-                            <p style={{ fontSize: 13.5, color: "#374151", margin: 0, lineHeight: 1.6 }}>{issue.customerImpact}</p>
+                            <p style={{ fontSize: 13.5, color: "#3A4E3A", margin: 0, lineHeight: 1.6 }}>{issue.customerImpact}</p>
                           </DetailBlock>
 
                           {/* Trend reason */}
                           <DetailBlock icon={trnd.icon} title={"Trend: " + trnd.label} iconColor={trnd.color}>
-                            <p style={{ fontSize: 13.5, color: "#374151", margin: 0, lineHeight: 1.6 }}>{issue.trendReason}</p>
+                            <p style={{ fontSize: 13.5, color: "#3A4E3A", margin: 0, lineHeight: 1.6 }}>{issue.trendReason}</p>
                           </DetailBlock>
 
                           {/* Example messages */}
@@ -372,7 +372,7 @@ export default function Insights({ tickets, onNavigate }) {
                             <DetailBlock icon="💬" title="Example Messages">
                               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                                 {issue.examples.map((ex, i) => (
-                                  <div key={i} style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, color: "#6B7280", lineHeight: 1.55, fontStyle: "italic" }}>
+                                  <div key={i} style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, color: "#6B7D6B", lineHeight: 1.55, fontStyle: "italic" }}>
                                     "{ex}"
                                   </div>
                                 ))}
@@ -384,8 +384,8 @@ export default function Insights({ tickets, onNavigate }) {
                         {/* Right column */}
                         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                           {/* Recommendation */}
-                          <DetailBlock icon="💡" title="Recommendation" titleColor="#6366F1" bg="#F5F3FF" border="#DDD6FE">
-                            <p style={{ fontSize: 13.5, color: "#374151", margin: 0, lineHeight: 1.6, fontWeight: 500 }}>{issue.recommendation}</p>
+                          <DetailBlock icon="💡" title="Recommendation" titleColor="#3D6B3D" bg="#F5F3FF" border="#C5D9C5">
+                            <p style={{ fontSize: 13.5, color: "#3A4E3A", margin: 0, lineHeight: 1.6, fontWeight: 500 }}>{issue.recommendation}</p>
                           </DetailBlock>
 
                           {/* Related tickets */}
@@ -396,7 +396,7 @@ export default function Insights({ tickets, onNavigate }) {
                                   <button
                                     key={id}
                                     onClick={() => onNavigate("tickets")}
-                                    style={{ background: "#F0EFFE", color: "#6366F1", border: "1px solid #DDD6FE", borderRadius: 6, padding: "4px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                                    style={{ background: "#EAF0EA", color: "#3D6B3D", border: "1px solid #DDD6FE", borderRadius: 6, padding: "4px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
                                   >
                                     #{id}
                                   </button>
@@ -411,10 +411,10 @@ export default function Insights({ tickets, onNavigate }) {
                               {[
                                 { label: "Severity", value: sev.label, color: sev.color, bg: sev.bg },
                                 { label: "Urgency",  value: urg.label, color: urg.color, bg: urg.bg },
-                                { label: "Sentiment",value: sent.label,color: sent.color,bg: "#F9FAFB" },
+                                { label: "Sentiment",value: sent.label,color: sent.color,bg: "#FAFAF7" },
                               ].map(row => (
                                 <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                  <span style={{ fontSize: 12, color: "#9CA3AF", fontWeight: 600 }}>{row.label}</span>
+                                  <span style={{ fontSize: 12, color: "#8A9E8A", fontWeight: 600 }}>{row.label}</span>
                                   <span style={{ fontSize: 12, fontWeight: 700, color: row.color, background: row.bg, borderRadius: 5, padding: "2px 8px" }}>{row.value}</span>
                                 </div>
                               ))}
@@ -430,11 +430,11 @@ export default function Insights({ tickets, onNavigate }) {
 
             {/* ── Footer ── */}
             <div style={{ marginTop: 32, padding: "16px 20px", background: "#fff", borderRadius: 12, border: "1px solid #EAECF0", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-              <div style={{ fontSize: 13, color: "#9CA3AF" }}>
-                Analyzed <strong style={{ color: "#374151" }}>{data.meta?.analyzedCount}</strong> messages using <strong style={{ color: "#374151" }}>Claude Sonnet</strong>
+              <div style={{ fontSize: 13, color: "#8A9E8A" }}>
+                Analyzed <strong style={{ color: "#3A4E3A" }}>{data.meta?.analyzedCount}</strong> messages using <strong style={{ color: "#3A4E3A" }}>Claude Sonnet</strong>
                 {lastRun && <> · {new Date(lastRun).toLocaleString()}</>}
               </div>
-              <button onClick={runAnalysis} style={{ background: "none", border: "1.5px solid #E5E7EB", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, color: "#6B7280", cursor: "pointer" }}>
+              <button onClick={runAnalysis} style={{ background: "none", border: "1.5px solid #E5E7EB", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, color: "#6B7D6B", cursor: "pointer" }}>
                 ↻ Re-analyze
               </button>
             </div>
@@ -449,15 +449,15 @@ function Stat({ icon, label, color }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
       <span style={{ fontSize: 13 }}>{icon}</span>
-      <span style={{ fontSize: 12, fontWeight: 600, color: color || "#6B7280" }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 600, color: color || "#6B7D6B" }}>{label}</span>
     </div>
   );
 }
 
 function DetailBlock({ icon, title, titleColor, children, bg, border }) {
   return (
-    <div style={{ background: bg || "#fff", border: "1.5px solid " + (border || "#E5E7EB"), borderRadius: 10, padding: "14px 16px" }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: titleColor || "#374151", marginBottom: 8, display: "flex", alignItems: "center", gap: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+    <div style={{ background: bg || "#fff", border: "1.5px solid " + (border || "#DDD8CF"), borderRadius: 10, padding: "14px 16px" }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: titleColor || "#3A4E3A", marginBottom: 8, display: "flex", alignItems: "center", gap: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>
         <span>{icon}</span>{title}
       </div>
       {children}

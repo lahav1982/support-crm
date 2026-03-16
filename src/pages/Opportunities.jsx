@@ -1,10 +1,10 @@
 import { useState } from "react";
 
 const STAGES = [
-  { id: "new",       label: "New",       color: "#6366F1", bg: "#F0EFFE" },
+  { id: "new",       label: "New",       color: "#3D6B3D", bg: "#EAF0EA" },
   { id: "contacted", label: "Contacted", color: "#F59E0B", bg: "#FFFBEB" },
-  { id: "converted", label: "Converted", color: "#22C55E", bg: "#F0FDF4" },
-  { id: "lost",      label: "Lost",      color: "#9CA3AF", bg: "#F3F4F6" },
+  { id: "converted", label: "Converted", color: "#5E9B5E", bg: "#EAF0EA" },
+  { id: "lost",      label: "Lost",      color: "#8A9E8A", bg: "#F0EDE6" },
 ];
 
 const STAGE_MAP = Object.fromEntries(STAGES.map(s => [s.id, s]));
@@ -177,10 +177,10 @@ export default function Opportunities({ opportunities, setOpportunities }) {
         {/* Header */}
         <div style={{ padding: "16px 14px 10px", borderBottom: "1px solid #F3F4F6" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: "#0F1117" }}>Opportunities</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "#1C2B1C" }}>Opportunities</span>
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={handleSync} disabled={syncing}
-                style={{ background: syncing ? "#F3F4F6" : "#F0EFFE", color: syncing ? "#9CA3AF" : "#6366F1", border: "none", borderRadius: 7, padding: "5px 10px", fontSize: 12, fontWeight: 700, cursor: syncing ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                style={{ background: syncing ? "#F0EDE6" : "#EAF0EA", color: syncing ? "#8A9E8A" : "#3D6B3D", border: "none", borderRadius: 7, padding: "5px 10px", fontSize: 12, fontWeight: 700, cursor: syncing ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                 <span style={{ display: "inline-block", animation: syncing ? "spin 1s linear infinite" : "none" }}>⟳</span>
                 {syncing ? "Syncing…" : "Sync"}
               </button>
@@ -191,21 +191,21 @@ export default function Opportunities({ opportunities, setOpportunities }) {
             </div>
           </div>
           {syncResult && (
-            <div style={{ margin: "0 0 8px", padding: "7px 10px", borderRadius: 7, fontSize: 12, fontWeight: 600, background: syncResult.ok ? "#F0FDF4" : "#FEF2F2", color: syncResult.ok ? "#16A34A" : "#DC2626", border: "1px solid " + (syncResult.ok ? "#BBF7D0" : "#FECACA") }}>
+            <div style={{ margin: "0 0 8px", padding: "7px 10px", borderRadius: 7, fontSize: 12, fontWeight: 600, background: syncResult.ok ? "#EAF0EA" : "#FEF2F2", color: syncResult.ok ? "#3D6B3D" : "#DC2626", border: "1px solid " + (syncResult.ok ? "#C5D9C5" : "#FECACA") }}>
               {syncResult.ok ? "✓" : "✗"} {syncResult.msg}
             </div>
           )}
 
           {/* Search */}
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..."
-            style={{ width: "100%", background: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 8, padding: "7px 10px", fontSize: 13, outline: "none", fontFamily: "inherit", color: "#0F1117" }} />
+            style={{ width: "100%", background: "#FAFAF7", border: "1.5px solid #E5E7EB", borderRadius: 8, padding: "7px 10px", fontSize: 13, outline: "none", fontFamily: "inherit", color: "#1C2B1C" }} />
         </div>
 
         {/* Stage filter tabs */}
         <div style={{ display: "flex", borderBottom: "1px solid #F3F4F6", overflowX: "auto" }}>
           {[{ id: "all", label: "All" }, ...STAGES].map(s => (
             <button key={s.id} onClick={() => setFilter(s.id)}
-              style={{ flex: 1, padding: "8px 4px", fontSize: 11, fontWeight: 700, border: "none", borderBottom: filter === s.id ? "2px solid #6366F1" : "2px solid transparent", background: "transparent", color: filter === s.id ? "#6366F1" : "#9CA3AF", cursor: "pointer", whiteSpace: "nowrap" }}>
+              style={{ flex: 1, padding: "8px 4px", fontSize: 11, fontWeight: 700, border: "none", borderBottom: filter === s.id ? "2px solid #6366F1" : "2px solid transparent", background: "transparent", color: filter === s.id ? "#3D6B3D" : "#8A9E8A", cursor: "pointer", whiteSpace: "nowrap" }}>
               {s.label} {s.id !== "all" && <span style={{ fontSize: 10, opacity: 0.8 }}>({counts[s.id] || 0})</span>}
             </button>
           ))}
@@ -215,7 +215,7 @@ export default function Opportunities({ opportunities, setOpportunities }) {
         {selectedIds.size > 0 && (
           <div style={{ margin: "6px 8px 0", padding: "8px 12px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: "#DC2626", flex: 1 }}>{selectedIds.size} selected</span>
-            <button onClick={() => setSelectedIds(new Set())} style={{ background: "none", border: "none", fontSize: 12, color: "#6B7280", cursor: "pointer", fontWeight: 600 }}>Cancel</button>
+            <button onClick={() => setSelectedIds(new Set())} style={{ background: "none", border: "none", fontSize: 12, color: "#6B7D6B", cursor: "pointer", fontWeight: 600 }}>Cancel</button>
             <button onClick={handleBulkDelete} disabled={deleting} style={{ background: "#DC2626", color: "#fff", border: "none", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: deleting ? "not-allowed" : "pointer", opacity: deleting ? 0.7 : 1 }}>
               {deleting ? "Deleting…" : `🗑 Delete ${selectedIds.size}`}
             </button>
@@ -225,14 +225,14 @@ export default function Opportunities({ opportunities, setOpportunities }) {
           <div style={{ padding: "6px 12px 2px", display: "flex", alignItems: "center", gap: 8 }}>
             <input type="checkbox" checked={selectedIds.size === filtered.length && filtered.length > 0}
               onChange={toggleSelectAll} style={{ cursor: "pointer", width: 14, height: 14 }} />
-            <span style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600 }}>
+            <span style={{ fontSize: 11, color: "#8A9E8A", fontWeight: 600 }}>
               {selectedIds.size === filtered.length && filtered.length > 0 ? "Deselect all" : "Select all"}
             </span>
           </div>
         )}
         <div style={{ flex: 1, overflowY: "auto", padding: "4px 8px" }}>
           {filtered.length === 0 ? (
-            <div style={{ textAlign: "center", color: "#9CA3AF", fontSize: 13, padding: "40px 16px" }}>
+            <div style={{ textAlign: "center", color: "#8A9E8A", fontSize: 13, padding: "40px 16px" }}>
               {filter === "all" ? "No opportunities yet.\nSync Gmail or add manually." : `No ${filter} opportunities.`}
             </div>
           ) : filtered.map(o => {
@@ -245,17 +245,17 @@ export default function Opportunities({ opportunities, setOpportunities }) {
                   onClick={e => e.stopPropagation()} style={{ cursor: "pointer", width: 14, height: 14, marginTop: 2, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }} onClick={() => setSelected(o)}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#0F1117", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.customerName || "Unknown"}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#1C2B1C", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.customerName || "Unknown"}</span>
                   <span style={{ fontSize: 10, fontWeight: 700, background: stage.bg, color: stage.color, borderRadius: 20, padding: "2px 7px", whiteSpace: "nowrap" }}>{stage.label}</span>
                 </div>
-                <div style={{ fontSize: 12, color: "#6B7280", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 3 }}>{o.message || "No message"}</div>
+                <div style={{ fontSize: 12, color: "#6B7D6B", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 3 }}>{o.message || "No message"}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 11, color: "#9CA3AF" }}>{o.date}</span>
+                  <span style={{ fontSize: 11, color: "#8A9E8A" }}>{o.date}</span>
                   {o.estimatedValue && o.estimatedValue !== "Unknown" && (
                     <span style={{ fontSize: 11, fontWeight: 600, color: "#059669", background: "#ECFDF5", borderRadius: 4, padding: "1px 5px" }}>{o.estimatedValue}</span>
                   )}
                   {o.source === "shopify" && (
-                    <span style={{ fontSize: 10, color: "#6366F1", background: "#F0EFFE", borderRadius: 4, padding: "1px 5px", fontWeight: 600 }}>Shopify</span>
+                    <span style={{ fontSize: 10, color: "#3D6B3D", background: "#EAF0EA", borderRadius: 4, padding: "1px 5px", fontWeight: 600 }}>Shopify</span>
                   )}
                 </div>
                 </div>
@@ -266,7 +266,7 @@ export default function Opportunities({ opportunities, setOpportunities }) {
       </div>
 
       {/* Right panel — detail or stats */}
-      <div style={{ flex: 1, overflowY: "auto", background: "#F5F6FA" }}>
+      <div style={{ flex: 1, overflowY: "auto", background: "#F7F5F0" }}>
         {selected ? (
           <OpportunityDetail
             opp={selected}
@@ -285,38 +285,38 @@ export default function Opportunities({ opportunities, setOpportunities }) {
       {showAdd && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ background: "#fff", borderRadius: 14, padding: "28px 28px 24px", width: 440, boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
-            <div style={{ fontSize: 17, fontWeight: 700, color: "#0F1117", marginBottom: 18 }}>Add Opportunity</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: "#1C2B1C", marginBottom: 18 }}>Add Opportunity</div>
             {[
               { key: "customerName", label: "Customer Name *", placeholder: "e.g. David Gomez" },
               { key: "message", label: "Message / Interest", placeholder: "What are they interested in?" },
               { key: "notes", label: "Notes", placeholder: "Any additional context..." },
             ].map(f => (
               <div key={f.key} style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>{f.label}</label>
+                <label style={{ fontSize: 13, fontWeight: 600, color: "#3A4E3A", display: "block", marginBottom: 4 }}>{f.label}</label>
                 <textarea value={newForm[f.key]} onChange={e => setNewForm(p => ({ ...p, [f.key]: e.target.value }))}
                   placeholder={f.placeholder} rows={f.key === "message" || f.key === "notes" ? 2 : 1}
-                  style={{ width: "100%", background: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 8, padding: "8px 10px", fontSize: 14, outline: "none", fontFamily: "inherit", resize: "vertical", lineHeight: 1.5 }} />
+                  style={{ width: "100%", background: "#FAFAF7", border: "1.5px solid #E5E7EB", borderRadius: 8, padding: "8px 10px", fontSize: 14, outline: "none", fontFamily: "inherit", resize: "vertical", lineHeight: 1.5 }} />
               </div>
             ))}
             <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
               <div style={{ flex: 1 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>Est. Value</label>
+                <label style={{ fontSize: 13, fontWeight: 600, color: "#3A4E3A", display: "block", marginBottom: 4 }}>Est. Value</label>
                 <select value={newForm.estimatedValue} onChange={e => setNewForm(p => ({ ...p, estimatedValue: e.target.value }))}
-                  style={{ width: "100%", background: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 8, padding: "8px 10px", fontSize: 14, outline: "none", fontFamily: "inherit" }}>
+                  style={{ width: "100%", background: "#FAFAF7", border: "1.5px solid #E5E7EB", borderRadius: 8, padding: "8px 10px", fontSize: 14, outline: "none", fontFamily: "inherit" }}>
                   {VALUE_OPTIONS.map(v => <option key={v}>{v}</option>)}
                 </select>
               </div>
               <div style={{ flex: 1 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>Stage</label>
+                <label style={{ fontSize: 13, fontWeight: 600, color: "#3A4E3A", display: "block", marginBottom: 4 }}>Stage</label>
                 <select value={newForm.stage} onChange={e => setNewForm(p => ({ ...p, stage: e.target.value }))}
-                  style={{ width: "100%", background: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 8, padding: "8px 10px", fontSize: 14, outline: "none", fontFamily: "inherit" }}>
+                  style={{ width: "100%", background: "#FAFAF7", border: "1.5px solid #E5E7EB", borderRadius: 8, padding: "8px 10px", fontSize: 14, outline: "none", fontFamily: "inherit" }}>
                   {STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                 </select>
               </div>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => setShowAdd(false)}
-                style={{ flex: 1, padding: "10px", background: "#F3F4F6", border: "none", borderRadius: 9, fontSize: 14, fontWeight: 600, cursor: "pointer", color: "#6B7280" }}>Cancel</button>
+                style={{ flex: 1, padding: "10px", background: "#F0EDE6", border: "none", borderRadius: 9, fontSize: 14, fontWeight: 600, cursor: "pointer", color: "#6B7D6B" }}>Cancel</button>
               <button onClick={addManual} disabled={saving || !newForm.customerName.trim()}
                 style={{ flex: 2, padding: "10px", background: "linear-gradient(135deg,#6366F1,#8B5CF6)", border: "none", borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: "pointer", color: "#fff", opacity: saving ? 0.7 : 1 }}>
                 {saving ? "Saving…" : "Add Opportunity"}
@@ -348,23 +348,23 @@ function OpportunityDetail({ opp, onStageChange, onNotesChange, onValueChange, o
           {(opp.customerName || "?")[0].toUpperCase()}
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: "#0F1117", marginBottom: 3 }}>{opp.customerName || "Unknown Customer"}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: "#1C2B1C", marginBottom: 3 }}>{opp.customerName || "Unknown Customer"}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 12, color: "#9CA3AF" }}>{opp.date}</span>
-            {opp.source === "shopify" && <span style={{ fontSize: 11, fontWeight: 600, color: "#6366F1", background: "#F0EFFE", borderRadius: 4, padding: "2px 7px" }}>Shopify Inbox</span>}
-            {opp.source === "manual" && <span style={{ fontSize: 11, fontWeight: 600, color: "#6B7280", background: "#F3F4F6", borderRadius: 4, padding: "2px 7px" }}>Manual</span>}
+            <span style={{ fontSize: 12, color: "#8A9E8A" }}>{opp.date}</span>
+            {opp.source === "shopify" && <span style={{ fontSize: 11, fontWeight: 600, color: "#3D6B3D", background: "#EAF0EA", borderRadius: 4, padding: "2px 7px" }}>Shopify Inbox</span>}
+            {opp.source === "manual" && <span style={{ fontSize: 11, fontWeight: 600, color: "#6B7D6B", background: "#F0EDE6", borderRadius: 4, padding: "2px 7px" }}>Manual</span>}
           </div>
         </div>
-        <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 20, color: "#9CA3AF", cursor: "pointer", padding: "0 4px" }}>×</button>
+        <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 20, color: "#8A9E8A", cursor: "pointer", padding: "0 4px" }}>×</button>
       </div>
 
       {/* Stage selector */}
       <div style={{ background: "#fff", border: "1px solid #EAECF0", borderRadius: 12, padding: "16px 18px", marginBottom: 14, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Stage</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#8A9E8A", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Stage</div>
         <div style={{ display: "flex", gap: 8 }}>
           {STAGES.map(s => (
             <button key={s.id} onClick={() => onStageChange(s.id)}
-              style={{ flex: 1, padding: "8px 4px", borderRadius: 8, border: opp.stage === s.id ? `2px solid ${s.color}` : "2px solid #E5E7EB", background: opp.stage === s.id ? s.bg : "#F9FAFB", color: opp.stage === s.id ? s.color : "#6B7280", fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}>
+              style={{ flex: 1, padding: "8px 4px", borderRadius: 8, border: opp.stage === s.id ? `2px solid ${s.color}` : "2px solid #E5E7EB", background: opp.stage === s.id ? s.bg : "#FAFAF7", color: opp.stage === s.id ? s.color : "#6B7D6B", fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}>
               {s.label}
             </button>
           ))}
@@ -373,11 +373,11 @@ function OpportunityDetail({ opp, onStageChange, onNotesChange, onValueChange, o
 
       {/* Est value */}
       <div style={{ background: "#fff", border: "1px solid #EAECF0", borderRadius: 12, padding: "16px 18px", marginBottom: 14, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Estimated Value</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#8A9E8A", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Estimated Value</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {VALUE_OPTIONS.map(v => (
             <button key={v} onClick={() => onValueChange(v)}
-              style={{ padding: "6px 12px", borderRadius: 7, border: opp.estimatedValue === v ? "2px solid #059669" : "2px solid #E5E7EB", background: opp.estimatedValue === v ? "#ECFDF5" : "#F9FAFB", color: opp.estimatedValue === v ? "#059669" : "#6B7280", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }}>
+              style={{ padding: "6px 12px", borderRadius: 7, border: opp.estimatedValue === v ? "2px solid #059669" : "2px solid #E5E7EB", background: opp.estimatedValue === v ? "#ECFDF5" : "#FAFAF7", color: opp.estimatedValue === v ? "#059669" : "#6B7D6B", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }}>
               {v}
             </button>
           ))}
@@ -387,22 +387,22 @@ function OpportunityDetail({ opp, onStageChange, onNotesChange, onValueChange, o
       {/* Message */}
       {opp.message && (
         <div style={{ background: "#fff", border: "1px solid #EAECF0", borderRadius: 12, padding: "16px 18px", marginBottom: 14, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Customer Message</div>
-          <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.7, whiteSpace: "pre-wrap", background: "#F9FAFB", borderRadius: 8, padding: "12px 14px" }}>{opp.message}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#8A9E8A", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Customer Message</div>
+          <div style={{ fontSize: 14, color: "#3A4E3A", lineHeight: 1.7, whiteSpace: "pre-wrap", background: "#FAFAF7", borderRadius: 8, padding: "12px 14px" }}>{opp.message}</div>
         </div>
       )}
 
       {/* Notes */}
       <div style={{ background: "#fff", border: "1px solid #EAECF0", borderRadius: 12, padding: "16px 18px", marginBottom: 14, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Notes</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#8A9E8A", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Notes</div>
         <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Add follow-up notes, product interest, next steps..."
           rows={4}
-          style={{ width: "100%", background: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 8, padding: "10px 12px", fontSize: 14, outline: "none", fontFamily: "inherit", resize: "vertical", lineHeight: 1.6, color: "#0F1117" }}
-          onFocus={e => { e.target.style.borderColor = "#6366F1"; e.target.style.background = "#fff"; }}
-          onBlur={e => { e.target.style.borderColor = "#E5E7EB"; e.target.style.background = "#F9FAFB"; }}
+          style={{ width: "100%", background: "#FAFAF7", border: "1.5px solid #E5E7EB", borderRadius: 8, padding: "10px 12px", fontSize: 14, outline: "none", fontFamily: "inherit", resize: "vertical", lineHeight: 1.6, color: "#1C2B1C" }}
+          onFocus={e => { e.target.style.borderColor = "#3D6B3D"; e.target.style.background = "#fff"; }}
+          onBlur={e => { e.target.style.borderColor = "#DDD8CF"; e.target.style.background = "#FAFAF7"; }}
         />
         <button onClick={saveNotes}
-          style={{ marginTop: 8, background: notesSaved ? "#F0FDF4" : "#6366F1", color: notesSaved ? "#16A34A" : "#fff", border: notesSaved ? "1px solid #BBF7D0" : "none", borderRadius: 7, padding: "7px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+          style={{ marginTop: 8, background: notesSaved ? "#EAF0EA" : "#3D6B3D", color: notesSaved ? "#3D6B3D" : "#fff", border: notesSaved ? "1px solid #BBF7D0" : "none", borderRadius: 7, padding: "7px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
           {notesSaved ? "✓ Saved" : "Save Notes"}
         </button>
       </div>
@@ -421,26 +421,26 @@ function OpportunityDetail({ opp, onStageChange, onNotesChange, onValueChange, o
 function PipelineStats({ ops, counts, totalValue, convRate }) {
   return (
     <div style={{ maxWidth: 640, margin: "0 auto", padding: "32px 28px" }}>
-      <div style={{ fontSize: 20, fontWeight: 800, color: "#0F1117", marginBottom: 6 }}>Sales Pipeline</div>
-      <div style={{ fontSize: 14, color: "#9CA3AF", marginBottom: 24 }}>Select an opportunity to view details</div>
+      <div style={{ fontSize: 20, fontWeight: 800, color: "#1C2B1C", marginBottom: 6 }}>Sales Pipeline</div>
+      <div style={{ fontSize: 14, color: "#8A9E8A", marginBottom: 24 }}>Select an opportunity to view details</div>
 
       {/* KPI cards */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
         {[
-          { label: "Total Leads", value: ops.length, color: "#6366F1", bg: "#F0EFFE" },
-          { label: "Conversion Rate", value: convRate + "%", color: "#22C55E", bg: "#F0FDF4" },
+          { label: "Total Leads", value: ops.length, color: "#3D6B3D", bg: "#EAF0EA" },
+          { label: "Conversion Rate", value: convRate + "%", color: "#5E9B5E", bg: "#EAF0EA" },
           { label: "Pipeline Value", value: totalValue > 0 ? "~$" + totalValue : "—", color: "#F59E0B", bg: "#FFFBEB" },
         ].map(k => (
           <div key={k.label} style={{ background: "#fff", border: "1px solid #EAECF0", borderRadius: 12, padding: "16px 18px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", textAlign: "center" }}>
             <div style={{ fontSize: 24, fontWeight: 800, color: k.color, marginBottom: 4 }}>{k.value}</div>
-            <div style={{ fontSize: 12, color: "#9CA3AF", fontWeight: 600 }}>{k.label}</div>
+            <div style={{ fontSize: 12, color: "#8A9E8A", fontWeight: 600 }}>{k.label}</div>
           </div>
         ))}
       </div>
 
       {/* Stage breakdown */}
       <div style={{ background: "#fff", border: "1px solid #EAECF0", borderRadius: 12, padding: "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>By Stage</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#8A9E8A", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>By Stage</div>
         {STAGES.map(s => {
           const count = counts[s.id] || 0;
           const pct = ops.length ? (count / ops.length) * 100 : 0;
@@ -448,9 +448,9 @@ function PipelineStats({ ops, counts, totalValue, convRate }) {
             <div key={s.id} style={{ marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: s.color }}>{s.label}</span>
-                <span style={{ fontSize: 13, color: "#6B7280" }}>{count} lead{count !== 1 ? "s" : ""}</span>
+                <span style={{ fontSize: 13, color: "#6B7D6B" }}>{count} lead{count !== 1 ? "s" : ""}</span>
               </div>
-              <div style={{ height: 6, background: "#F3F4F6", borderRadius: 10, overflow: "hidden" }}>
+              <div style={{ height: 6, background: "#F0EDE6", borderRadius: 10, overflow: "hidden" }}>
                 <div style={{ height: "100%", width: pct + "%", background: s.color, borderRadius: 10, transition: "width 0.4s ease" }} />
               </div>
             </div>
@@ -461,8 +461,8 @@ function PipelineStats({ ops, counts, totalValue, convRate }) {
       {ops.length === 0 && (
         <div style={{ textAlign: "center", padding: "32px 20px", background: "#fff", borderRadius: 12, border: "1px solid #EAECF0" }}>
           <div style={{ fontSize: 32, marginBottom: 10 }}>🌱</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "#0F1117", marginBottom: 6 }}>No opportunities yet</div>
-          <div style={{ fontSize: 13, color: "#9CA3AF" }}>Sync Gmail to auto-import Shopify Inbox chats,<br />or add leads manually with the + Add button.</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#1C2B1C", marginBottom: 6 }}>No opportunities yet</div>
+          <div style={{ fontSize: 13, color: "#8A9E8A" }}>Sync Gmail to auto-import Shopify Inbox chats,<br />or add leads manually with the + Add button.</div>
         </div>
       )}
     </div>

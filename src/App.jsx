@@ -183,7 +183,7 @@ export default function App() {
           <div style={{ width: 36, height: 36, borderRadius: 10, background: "#3D6B3D", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: "1px solid #4A7C4A" }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           </div>
-          <span style={{ fontSize: 15, fontWeight: 600, color: "#F0EBE0", letterSpacing: "0.2px", fontFamily: "'Playfair Display', serif" }}>SupportAI</span>
+          <span style={{ fontSize: 15, fontWeight: 600, color: "#F0EBE0", letterSpacing: "0.2px", fontFamily: "'Playfair Display', serif" }}>Rootless CRM</span>
         </div>
 
         {/* Nav */}
@@ -280,7 +280,7 @@ function LoadingScreen() {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
       </div>
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 15, fontWeight: 600, color: "#1C2B1C", marginBottom: 4 }}>Loading SupportAI</div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: "#1C2B1C", marginBottom: 4 }}>Loading Rootless CRM</div>
         <div style={{ fontSize: 12, color: "#9CA3AF" }}>Connecting to database…</div>
       </div>
       <div style={{ width: 32, height: 32, border: "3px solid #E5E7EB", borderTopColor: "#6366F1", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
@@ -347,7 +347,7 @@ function LoginScreen({ onLogin }) {
           <div style={{ width: 52, height: 52, borderRadius: 14, background: "#1C2B1C", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14, boxShadow: "0 4px 20px rgba(28,43,28,0.2)" }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 600, color: "#1C2B1C", margin: "0 0 4px", letterSpacing: "-0.3px", fontFamily: "'Playfair Display', serif" }}>SupportAI</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 600, color: "#1C2B1C", margin: "0 0 4px", letterSpacing: "-0.3px", fontFamily: "'Playfair Display', serif" }}>Rootless CRM</h1>
           <p style={{ fontSize: 13, color: "#8A9E8A", margin: 0 }}>Sign in to your support dashboard</p>
         </div>
 

@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     }
 
     // ── 3. Load all known tickets AND opportunities with Gmail data ──────────
-    const [existingRes, existingOppsRes] = await Promise.all([
+    const [existingRes, existingOppsRes, existingQualityRes] = await Promise.all([
       fetch(
         supabaseUrl + "/rest/v1/tickets?select=id,gmail_message_id,gmail_thread_id,replies,status&gmail_message_id=not.is.null",
         { headers: { "apikey": supabaseKey, "Authorization": "Bearer " + supabaseKey } }
@@ -39,16 +39,19 @@ export default async function handler(req, res) {
         supabaseUrl + "/rest/v1/opportunities?select=gmail_message_id&gmail_message_id=not.is.null",
         { headers: { "apikey": supabaseKey, "Authorization": "Bearer " + supabaseKey } }
       ),
+      fetch(
+        supabaseUrl + "/rest/v1/quality_issues?select=gmail_message_id&gmail_message_id=not.is.null",
+        { headers: { "apikey": supabaseKey, "Authorization": "Bearer " + supabaseKey } }
+      ),
     ]);
-    const existingRows    = await existingRes.json()     || [];
-    const existingOppRows = await existingOppsRes.json() || [];
+    const existingRows       = await existingRes.json()       || [];
+    const existingOppRows    = await existingOppsRes.json()   || [];
+    const existingQualityRows = await existingQualityRes.json() || [];
 
-    // Track all message IDs already in DB (tickets + opportunities) to avoid duplicates
+    // Track all message IDs already in DB (tickets + opportunities + quality) to avoid duplicates
     const importedMessageIds = new Set(existingRows.map(r => r.gmail_message_id));
-    // Add opportunity message IDs
-    for (const row of existingOppRows) {
-      if (row.gmail_message_id) importedMessageIds.add(row.gmail_message_id);
-    }
+    for (const row of existingOppRows)    { if (row.gmail_message_id) importedMessageIds.add(row.gmail_message_id); }
+    for (const row of existingQualityRows){ if (row.gmail_message_id) importedMessageIds.add(row.gmail_message_id); }
     // Also collect all reply message IDs that were appended to tickets
     for (const row of existingRows) {
       for (const reply of (row.replies || [])) {
@@ -177,6 +180,34 @@ export default async function handler(req, res) {
 
       if (triage.type === "ignore") { results.rejected++; continue; }
 
+      if (triage.type === "quality") {
+        // Route to quality_issues table
+        await fetch(supabaseUrl + "/rest/v1/quality_issues", {
+          method: "POST",
+          headers: {
+            "Content-Type":  "application/json",
+            "apikey":        supabaseKey,
+            "Authorization": "Bearer " + supabaseKey,
+            "Prefer":        "return=minimal",
+          },
+          body: JSON.stringify({
+            customer_name:    parsed.fromName || parsed.fromEmail,
+            customer_email:   parsed.fromEmail,
+            subject:          parsed.subject,
+            message:          parsed.body,
+            defect_type:      triage.defectType || "other",
+            status:           "open",
+            notes:            "",
+            source:           "email",
+            gmail_message_id: msg.id,
+            created_at:       parsed.sentAt,
+          }),
+        });
+        importedMessageIds.add(msg.id);
+        results.imported++;
+        continue;
+      }
+
       if (triage.type === "sales") {
         // Route to opportunities table
         await fetch(supabaseUrl + "/rest/v1/opportunities", {
@@ -295,6 +326,15 @@ ${parsed.body.slice(0, 1000)}
 ---
 Choose exactly one type:
 
+"quality" — Customer reporting a physical product defect or damage. Clear signals:
+  ✓ Broken pot, cracked container, damaged planter
+  ✓ Damaged, wilting, dead, or poor quality plant/tree
+  ✓ Missing parts (missing pot, missing soil, missing accessories)
+  ✓ Wrong item received that relates to product physical condition
+  ✓ Product arrived damaged in transit
+  ✓ Describing the item as "broken", "cracked", "snapped", "damaged", "defective", "falling apart", "poor quality", "not as described" physically
+  This takes priority over "support" when the issue is specifically about product physical quality or damage.
+
 "sales" — A real human (not a system) is asking a genuine pre-purchase question. They want to BUY something or need information BEFORE buying. Clear signals:
   ✓ Asking about a specific product, its features, availability, or price
   ✓ Asking about shipping cost, delivery time, or whether you ship to their location
@@ -304,15 +344,16 @@ Choose exactly one type:
   ✗ NOT sales: post-purchase questions, complaints, refund requests (those are "support")
   ✗ NOT sales: any automated email, receipt, billing notification, app approval
 
-"support" — A real human who already bought something needs help: wrong/damaged item, missing package, wants a refund or exchange, has a complaint, account problem.
+"support" — A real human who already bought something needs help that is NOT a product defect: missing package, refund request, exchange (non-defect), billing question, account problem.
 
 "ignore" — Everything else: automated emails, billing/payment notifications, app approvals, order confirmations, newsletters, receipts, cold outreach, spam, no-reply senders, internal platform emails, subscription charges.
 
 When uncertain between "sales" and "ignore", choose "ignore".
 When uncertain between "support" and "ignore", choose "ignore".
+When a message mentions both a defect AND wants a refund/exchange, choose "quality".
 
 Respond ONLY with JSON:
-{"type":"support|sales|ignore","reason":"one sentence explaining the decision","tag":"Shipping|Refund|Exchange|Technical|General|Complaint|Billing|Inquiry|Pricing|Wholesale","priority":"high|medium|low"}`;
+{"type":"support|sales|quality|ignore","reason":"one sentence explaining the decision","defectType":"broken_pot|damaged_plant|wrong_item|missing_parts|quality_poor|other","tag":"Shipping|Refund|Exchange|Technical|General|Complaint|Billing|Inquiry|Pricing|Wholesale|Defect","priority":"high|medium|low"}`;
 
     const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -322,7 +363,7 @@ Respond ONLY with JSON:
     const aiData = await aiRes.json();
     const text = aiData.content?.map(c => c.text || "").join("") || "{}";
     const result = JSON.parse(text.replace(/```json|```/g, "").trim());
-    if (!["support","sales","ignore"].includes(result.type)) result.type = "ignore";
+    if (!["support","sales","quality","ignore"].includes(result.type)) result.type = "ignore";
     return result;
   } catch (e) {
     console.error("Triage AI error:", e);

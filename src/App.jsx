@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Opportunities, { rowToOpp } from "./pages/Opportunities.jsx";
+import QualityIssues, { rowToIssue } from "./pages/QualityIssues.jsx";
 import { fetchTickets, fetchSettings, saveSettings, rowToTicket, rowToSettings, fetchGmailStatus, disconnectGmail } from "./lib/supabase.js";
 import Inbox from "./pages/Inbox.jsx";
 import Tickets from "./pages/Tickets.jsx";
@@ -15,6 +16,7 @@ const NAV = [
   { id: "analytics", label: "Analytics", icon: <ChartIcon /> },
   { id: "insights",      label: "Insights",      icon: <InsightsIcon /> },
   { id: "opportunities", label: "Opportunities", icon: <OppsIcon /> },
+  { id: "quality",      label: "Quality Issues", icon: <QualityIcon /> },
   { id: "settings",  label: "Settings",  icon: <GearIcon /> },
 ];
 
@@ -28,6 +30,7 @@ export default function App() {
   const [page, setPage] = useState("inbox");
   const [tickets, setTickets] = useState([]);
   const [opportunities, setOpportunities] = useState([]);
+  const [qualityIssues, setQualityIssues] = useState([]);
   const [contextForm, setContextForm] = useState(EMPTY_CONTEXT);
   const [savedContext, setSavedContext] = useState(EMPTY_CONTEXT);
   const [gmailStatus, setGmailStatus] = useState({ connected: false, email: null });
@@ -62,15 +65,17 @@ export default function App() {
       }
 
       try {
-        const [ticketRows, settingsRow, gmail, oppsRows] = await Promise.all([
+        const [ticketRows, settingsRow, gmail, oppsRows, qualityRows] = await Promise.all([
           fetchTickets(),
           fetchSettings(),
           fetchGmailStatus(),
           fetch("/api/opportunities", { credentials: "include" }).then(r => r.json()).catch(() => []),
+          fetch("/api/quality-issues", { credentials: "include" }).then(r => r.json()).catch(() => []),
         ]);
 
         setTickets((ticketRows || []).map(rowToTicket));
         setOpportunities(Array.isArray(oppsRows) ? oppsRows.map(rowToOpp) : []);
+        setQualityIssues(Array.isArray(qualityRows) ? qualityRows.map(rowToIssue) : []);
         const ctx = rowToSettings(settingsRow);
         setContextForm(ctx);
         setSavedContext(ctx);
@@ -102,7 +107,8 @@ export default function App() {
 
   const emailCount  = tickets.filter(t => t.type !== "ticket" && t.status === "open").length;
   const ticketCount = tickets.filter(t => t.type === "ticket" && (t.status === "open" || t.status === "in progress")).length;
-  const oppsCount   = opportunities.filter(o => o.stage === "new").length;
+  const oppsCount    = opportunities.filter(o => o.stage === "new").length;
+  const qualityCount = qualityIssues.filter(i => i.status === "open").length;
   const hasContext  = Object.values(savedContext).filter(v => typeof v === "string").some(v => v.trim());
   const businessContextPrompt = buildPrompt(savedContext);
 
@@ -189,7 +195,7 @@ export default function App() {
         {/* Nav */}
         {NAV.map(n => {
           const isActive = page === n.id;
-          const badge = n.id === "inbox" ? emailCount : n.id === "tickets" ? ticketCount : n.id === "opportunities" ? oppsCount : 0;
+          const badge = n.id === "inbox" ? emailCount : n.id === "tickets" ? ticketCount : n.id === "opportunities" ? oppsCount : n.id === "quality" ? qualityCount : 0;
           return (
             <button key={n.id} onClick={() => setPage(n.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 13px", borderRadius: 9, border: "none", background: isActive ? "rgba(255,255,255,0.15)" : "transparent", color: isActive ? "#F0EBE0" : "rgba(240,235,224,0.75)", cursor: "pointer", fontSize: 14.5, fontWeight: isActive ? 700 : 500, transition: "all 0.12s", textAlign: "left" }}>
               <span style={{ color: isActive ? "#A8C5A8" : "rgba(240,235,224,0.5)", display: "flex" }}>{n.icon}</span>
@@ -265,6 +271,7 @@ export default function App() {
           {page === "analytics" && <Analytics tickets={tickets} />}
           {page === "insights"      && <Insights      tickets={tickets} onNavigate={setPage} />}
           {page === "opportunities" && <Opportunities opportunities={opportunities} setOpportunities={setOpportunities} />}
+          {page === "quality"       && <QualityIssues issues={qualityIssues} setIssues={setQualityIssues} />}
           {page === "settings"  && <Settings  context={contextForm} onSave={handleSaveContext} gmailStatus={gmailStatus} onDisconnectGmail={handleDisconnectGmail} />}
         </div>
       </div>
@@ -306,6 +313,7 @@ function UsersIcon()    { return <svg width="17" height="17" viewBox="0 0 24 24"
 function ChartIcon()    { return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>; }
 function InsightsIcon() { return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>; }
 function OppsIcon()     { return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/><path d="M12 8v4l2 2"/></svg>; }
+function QualityIcon()  { return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>; }
 function GearIcon()     { return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>; }
 
 function LoginScreen({ onLogin }) {

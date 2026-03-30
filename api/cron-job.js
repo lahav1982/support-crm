@@ -85,7 +85,7 @@ async function runGmailSync(supabaseUrl, supabaseKey, anthropicKey) {
     accessToken = await refreshAccessToken(s.gmail_refresh_token, supabaseUrl, supabaseKey);
   }
 
-  const [existingRes, existingOppsRes] = await Promise.all([
+  const [existingRes, existingOppsRes, existingQualityRes] = await Promise.all([
     fetch(
       supabaseUrl + "/rest/v1/tickets?select=id,gmail_message_id,gmail_thread_id,replies,status&gmail_message_id=not.is.null",
       { headers: { "apikey": supabaseKey, "Authorization": "Bearer " + supabaseKey } }
@@ -94,14 +94,18 @@ async function runGmailSync(supabaseUrl, supabaseKey, anthropicKey) {
       supabaseUrl + "/rest/v1/opportunities?select=gmail_message_id&gmail_message_id=not.is.null",
       { headers: { "apikey": supabaseKey, "Authorization": "Bearer " + supabaseKey } }
     ),
+    fetch(
+      supabaseUrl + "/rest/v1/quality_issues?select=gmail_message_id&gmail_message_id=not.is.null",
+      { headers: { "apikey": supabaseKey, "Authorization": "Bearer " + supabaseKey } }
+    ),
   ]);
-  const existingRows    = await existingRes.json()     || [];
-  const existingOppRows = await existingOppsRes.json() || [];
+  const existingRows        = await existingRes.json()         || [];
+  const existingOppRows     = await existingOppsRes.json()     || [];
+  const existingQualityRows = await existingQualityRes.json()  || [];
 
   const importedMessageIds = new Set(existingRows.map(r => r.gmail_message_id));
-  for (const row of existingOppRows) {
-    if (row.gmail_message_id) importedMessageIds.add(row.gmail_message_id);
-  }
+  for (const row of existingOppRows)     { if (row.gmail_message_id) importedMessageIds.add(row.gmail_message_id); }
+  for (const row of existingQualityRows) { if (row.gmail_message_id) importedMessageIds.add(row.gmail_message_id); }
   for (const row of existingRows) {
     for (const reply of (row.replies || [])) {
       if (reply.id) importedMessageIds.add(reply.id);
@@ -177,6 +181,23 @@ async function runGmailSync(supabaseUrl, supabaseKey, anthropicKey) {
 
     const triage = await triageEmail(parsed, s, anthropicKey);
     if (triage.type === "ignore") { results.rejected++; continue; }
+
+    if (triage.type === "quality") {
+      await fetch(supabaseUrl + "/rest/v1/quality_issues", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": supabaseKey, "Authorization": "Bearer " + supabaseKey, "Prefer": "return=minimal" },
+        body: JSON.stringify({
+          customer_name: parsed.fromName || parsed.fromEmail, customer_email: parsed.fromEmail,
+          subject: parsed.subject, message: parsed.body,
+          defect_type: triage.defectType || "other", status: "open",
+          notes: "", source: "email",
+          gmail_message_id: msg.id, created_at: parsed.sentAt,
+        }),
+      });
+      importedMessageIds.add(msg.id);
+      results.imported++;
+      continue;
+    }
 
     if (triage.type === "sales") {
       await fetch(supabaseUrl + "/rest/v1/opportunities", {
@@ -330,24 +351,20 @@ ${parsed.body.slice(0, 1000)}
 ---
 Choose exactly one type:
 
-"sales" — A real human (not a system) is asking a genuine pre-purchase question. They want to BUY something or need information BEFORE buying. Clear signals:
-  ✓ Asking about a specific product, its features, availability, or price
-  ✓ Asking about shipping cost, delivery time, or whether you ship to their location
-  ✓ Asking about bulk, wholesale, or custom orders
-  ✓ Expressing intent to purchase: "I want to order...", "I'm interested in..."
-  ✓ Shopify Inbox chat from a customer browsing your store
-  ✗ NOT sales: post-purchase questions, complaints, refund requests (those are "support")
-  ✗ NOT sales: any automated email, receipt, billing notification, app approval
+"quality" — Customer reporting a physical product defect or damage: broken pot, cracked container, damaged/wilting plant, missing parts, poor quality materials, item arrived damaged. Takes priority over "support" when the issue is specifically about physical product quality or damage.
 
-"support" — A real human who already bought something needs help: wrong/damaged item, missing package, wants a refund or exchange, has a complaint, account problem.
+"sales" — Pre-purchase question: asking about products, pricing, shipping cost, availability, bulk orders. Must show genuine buying intent.
+  ✗ NOT sales: post-purchase questions, automated emails, receipts
 
-"ignore" — Everything else: automated emails, billing/payment notifications, app approvals, order confirmations, newsletters, receipts, cold outreach, spam, no-reply senders, internal platform emails, subscription charges.
+"support" — Post-purchase issue that is NOT a physical defect: missing package, refund request, exchange, billing question, account problem.
+
+"ignore" — Everything else: automated emails, receipts, notifications, spam, newsletters, cold outreach.
 
 When uncertain between "sales" and "ignore", choose "ignore".
-When uncertain between "support" and "ignore", choose "ignore".
+When a message mentions a physical defect AND wants a refund/exchange, choose "quality".
 
 Respond ONLY with JSON:
-{"type":"support|sales|ignore","reason":"one sentence explaining the decision","tag":"Shipping|Refund|Exchange|Technical|General|Complaint|Billing|Inquiry|Pricing|Wholesale","priority":"high|medium|low"}`;
+{"type":"support|sales|quality|ignore","reason":"one sentence","defectType":"broken_pot|damaged_plant|wrong_item|missing_parts|quality_poor|other","tag":"Shipping|Refund|Exchange|Technical|General|Complaint|Billing|Inquiry|Pricing|Wholesale|Defect","priority":"high|medium|low"}`;
 
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -357,7 +374,7 @@ Respond ONLY with JSON:
     const d = await r.json();
     const text = d.content?.map(c => c.text || "").join("") || "{}";
     const result = JSON.parse(text.replace(/```json|```/g, "").trim());
-    if (!["support","sales","ignore"].includes(result.type)) result.type = "ignore";
+    if (!["support","sales","quality","ignore"].includes(result.type)) result.type = "ignore";
     return result;
   } catch {
     return { type: "ignore", reason: "AI triage failed — skipped to be safe", tag: "General", priority: "low" };

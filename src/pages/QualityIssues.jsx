@@ -27,8 +27,10 @@ export default function QualityIssues({ issues, setIssues }) {
   const [search, setSearch]         = useState("");
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [deleting, setDeleting]     = useState(false);
-  const [syncing, setSyncing]       = useState(false);
-  const [syncResult, setSyncResult] = useState(null);
+  const [syncing, setSyncing]         = useState(false);
+  const [syncResult, setSyncResult]   = useState(null);
+  const [deepScanning, setDeepScanning] = useState(false);
+  const [deepProgress, setDeepProgress] = useState(null);
   const [showAdd, setShowAdd]       = useState(false);
   const [saving, setSaving]         = useState(false);
   const [newForm, setNewForm]       = useState({
@@ -37,6 +39,34 @@ export default function QualityIssues({ issues, setIssues }) {
   });
 
   const items = issues || [];
+
+  async function handleDeepScan() {
+    if (!confirm("This will scan your entire Gmail history for quality/defect emails. It may take 1-2 minutes. Continue?")) return;
+    setDeepScanning(true);
+    setDeepProgress("Scanning all Gmail history for quality issues…");
+    setSyncResult(null);
+    try {
+      const res = await fetch("/api/quality-scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      // Reload quality issues
+      const r = await fetch("/api/quality-issues", { credentials: "include" });
+      const d = await r.json();
+      if (Array.isArray(d)) setIssues(d.map(rowToIssue));
+      setSyncResult(data.error
+        ? { ok: false, msg: data.error }
+        : { ok: true, msg: data.message || `Found ${data.imported || 0} quality issues` });
+    } catch (e) {
+      setSyncResult({ ok: false, msg: e.message });
+    }
+    setDeepScanning(false);
+    setDeepProgress(null);
+    setTimeout(() => setSyncResult(null), 8000);
+  }
 
   const filtered = items.filter(i => {
     const matchStatus = filter === "all" || i.status === filter;
@@ -151,6 +181,12 @@ export default function QualityIssues({ issues, setIssues }) {
                 <span style={{ display: "inline-block", animation: syncing ? "spin 1s linear infinite" : "none", fontSize: 13 }}>⟳</span>
                 {syncing ? "Syncing…" : "Sync"}
               </button>
+              <button onClick={handleDeepScan} disabled={deepScanning || syncing}
+                title="Scan entire Gmail history for quality issues"
+                style={{ background: deepScanning ? "#F0EDE6" : "#FAE8E4", color: deepScanning ? "#8A9E8A" : "#C0543A", border: "1px solid #F0C4BB", borderRadius: 7, padding: "5px 10px", fontSize: 12, fontWeight: 700, cursor: deepScanning ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                <span style={{ display: "inline-block", animation: deepScanning ? "spin 1s linear infinite" : "none", fontSize: 13 }}>⟳</span>
+                {deepScanning ? "Scanning…" : "Full Scan"}
+              </button>
               <button onClick={() => setShowAdd(true)}
                 style={{ background: "#1C2B1C", color: "#E8E0D0", border: "none", borderRadius: 7, padding: "5px 11px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                 + Add
@@ -158,6 +194,12 @@ export default function QualityIssues({ issues, setIssues }) {
             </div>
           </div>
 
+          {deepProgress && (
+            <div style={{ marginBottom: 8, padding: "6px 10px", borderRadius: 7, fontSize: 12, fontWeight: 600, background: "#FBF3E0", color: "#8B6914", border: "1px solid #F0D9A0", display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>⟳</span>
+              {deepProgress}
+            </div>
+          )}
           {syncResult && (
             <div style={{ marginBottom: 8, padding: "6px 10px", borderRadius: 7, fontSize: 12, fontWeight: 600, background: syncResult.ok ? "#EAF0EA" : "#FAE8E4", color: syncResult.ok ? "#3D6B3D" : "#C0543A", border: `1px solid ${syncResult.ok ? "#C5D9C5" : "#F0C4BB"}` }}>
               {syncResult.ok ? "✓" : "✗"} {syncResult.msg}
